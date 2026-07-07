@@ -12,6 +12,7 @@ struct EntryEditorView: View {
     @State private var showPhotoPicker = false
     @State private var showCancelConfirm = false
     @State private var showSaveFailedAlert = false
+    @State private var showCategoryChange = false
     @State private var toastMessage: String?
 
     init(date: Date, categoryId: String, editingEntryId: String?) {
@@ -159,8 +160,29 @@ struct EntryEditorView: View {
                 .labelsHidden()
                 .onChange(of: viewModel.entry.date) { _, _ in viewModel.noteChanged() }
             Spacer()
-            if let category {
-                CategoryChip(category: category)
+            // 카테고리는 작성 중에도 변경 가능 (고정 아님)
+            Button {
+                showCategoryChange = true
+            } label: {
+                HStack(spacing: 4) {
+                    if let category {
+                        CategoryChip(category: category)
+                    } else {
+                        Text("카테고리 선택")
+                            .font(AppTypography.callout)
+                            .foregroundStyle(AppColors.primary)
+                    }
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(AppColors.textMuted)
+                }
+            }
+            .accessibilityLabel("카테고리 변경, 현재 \(category?.name ?? "없음")")
+        }
+        .sheet(isPresented: $showCategoryChange) {
+            CategoryChangeSheet(currentCategoryId: viewModel.entry.categoryId) { newCategory in
+                viewModel.entry.categoryId = newCategory.id
+                viewModel.noteChanged()
             }
         }
     }

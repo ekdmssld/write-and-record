@@ -83,20 +83,29 @@ struct EntryDetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
                 }
 
-                // metadata row
-                HStack(spacing: AppLayout.smallGap) {
-                    if let category = categoryRepository.category(id: entry.categoryId) {
-                        CategoryChip(category: category)
-                    } else {
-                        Text(entry.archivedCategoryName ?? "삭제된 카테고리")
+                // metadata row — 날짜/카테고리 탭 시 바로 수정으로 진입
+                Button {
+                    router.push(.entryEditor(date: entry.date, categoryId: entry.categoryId, entryId: entry.id))
+                } label: {
+                    HStack(spacing: AppLayout.smallGap) {
+                        if let category = categoryRepository.category(id: entry.categoryId) {
+                            CategoryChip(category: category)
+                        } else {
+                            Text(entry.archivedCategoryName ?? "삭제된 카테고리")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.textMuted)
+                        }
+                        Text(DateUtils.display(entry.date))
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textMuted)
+                        Image(systemName: "pencil")
+                            .font(.system(size: 11))
+                            .foregroundStyle(AppColors.textMuted)
+                        Spacer()
                     }
-                    Text(DateUtils.display(entry.date))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textMuted)
-                    Spacer()
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("날짜와 카테고리 수정")
 
                 HStack(spacing: AppLayout.mediumGap) {
                     if let rating = entry.rating {

@@ -23,9 +23,13 @@ enum LibraryViewMode: String, CaseIterable, Identifiable {
 struct LibraryHomeView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var entryRepository: EntryRepository
+    @EnvironmentObject private var photoService: PhotoLibraryService
 
     @StateObject private var router = NavigationRouter()
     @State private var viewMode: LibraryViewMode = .calendar
+
+    /// 로그인/온보딩 완료 후 첫 진입 시 한 번만 사진 권한을 요청한다.
+    @AppStorage("didRequestPhotoPermission") private var didRequestPhotoPermission = false
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -55,6 +59,18 @@ struct LibraryHomeView: View {
             .withAppRoutes()
         }
         .environmentObject(router)
+        .task {
+            await requestPhotoPermissionIfNeeded()
+        }
+    }
+
+    private func requestPhotoPermissionIfNeeded() async {
+        guard !didRequestPhotoPermission else { return }
+        didRequestPhotoPermission = true
+        photoService.refreshPermission()
+        if photoService.permission == .notDetermined {
+            await photoService.requestPermission()
+        }
     }
 
     private var topBar: some View {

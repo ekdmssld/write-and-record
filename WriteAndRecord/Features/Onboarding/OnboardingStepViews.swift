@@ -195,13 +195,22 @@ struct OnboardingThemeView: View {
     @Binding var profile: UserProfile
     let onNext: () -> Void
 
+    /// 테마를 고르기 전에는 공간 이름 입력을 숨기고,
+    /// 테마 선택 순간 위에서 슬라이드로 나타난다.
+    @State private var hasPickedTheme = false
+
     private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                OnboardingStepContainer(title: "내 공간을 꾸며볼까요?", subtitle: "테마와 공간 이름을 정해주세요.") {
+                OnboardingStepContainer(title: "내 공간을 꾸며볼까요?", subtitle: "마음에 드는 테마를 골라주세요.") {
                     VStack(alignment: .leading, spacing: AppLayout.largeGap) {
+                        if hasPickedTheme {
+                            spaceNameSection
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+
                         // profile card preview
                         HStack(spacing: AppLayout.mediumGap) {
                             Circle()
@@ -228,6 +237,9 @@ struct OnboardingThemeView: View {
                             ForEach(ProfileTheme.defaultThemes) { theme in
                                 Button {
                                     profile.themeId = theme.id
+                                    withAnimation(.spring(duration: 0.35)) {
+                                        hasPickedTheme = true
+                                    }
                                 } label: {
                                     VStack(spacing: 6) {
                                         Circle()
@@ -250,30 +262,38 @@ struct OnboardingThemeView: View {
                                 .accessibilityLabel("테마 \(theme.name)\(profile.themeId == theme.id ? ", 선택됨" : "")")
                             }
                         }
-
-                        VStack(alignment: .leading, spacing: AppLayout.smallGap) {
-                            Text("내 공간 이름")
-                                .font(AppTypography.headline)
-                            TextField("예: 다은의 기록방 (1~30자)", text: $profile.spaceName)
-                                .font(AppTypography.body)
-                                .padding(14)
-                                .background(AppColors.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: AppLayout.buttonRadius))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: AppLayout.buttonRadius)
-                                        .stroke(AppColors.line, lineWidth: 1)
-                                )
-                        }
                     }
                 }
             }
 
-            PrimaryButton(title: "다음", isEnabled: Validation.isValidSpaceName(profile.spaceName)) {
+            PrimaryButton(title: "다음", isEnabled: hasPickedTheme && Validation.isValidSpaceName(profile.spaceName)) {
                 profile.spaceName = profile.spaceName.trimmingCharacters(in: .whitespacesAndNewlines)
                 onNext()
             }
             .padding(.horizontal, AppLayout.horizontalPadding)
             .padding(.bottom, AppLayout.largeGap)
+        }
+        .onAppear {
+            // 뒤로가기/draft 복원으로 이미 공간 이름이 있으면 입력 필드를 바로 보여준다.
+            if !profile.spaceName.isEmpty {
+                hasPickedTheme = true
+            }
+        }
+    }
+
+    private var spaceNameSection: some View {
+        VStack(alignment: .leading, spacing: AppLayout.smallGap) {
+            Text("내 공간 이름")
+                .font(AppTypography.headline)
+            TextField("예: 다은의 기록방 (1~30자)", text: $profile.spaceName)
+                .font(AppTypography.body)
+                .padding(14)
+                .background(AppColors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppLayout.buttonRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppLayout.buttonRadius)
+                        .stroke(AppColors.line, lineWidth: 1)
+                )
         }
     }
 }

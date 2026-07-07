@@ -11,10 +11,11 @@
 6. `06_DISTRIBUTION_AND_RELEASE_PLAN.md`
 7. `07_CORE_STRUCTURE_DATA_PRIVACY_BACKUP.md`
 8. `08_QA_BETA_TEST_PLAN.md`
+9. `09_VISUAL_DIRECTION_AND_UI_CONCEPT.md`
 
 최소 입력:
 - 시간이 없으면 `04_AI_BUILD_PROMPT.md`를 먼저 넣고, 이어서 1, 3, 7번 문서를 첨부한다.
-- 화면 감성까지 맞추려면 2번을 추가한다.
+- 화면 감성까지 맞추려면 2번과 9번을 추가한다.
 - 실제 배포/테스트까지 고려하면 5, 6, 8번 문서도 반드시 넣는다.
 
 구현 목표:
@@ -28,6 +29,7 @@
 
 절대 놓치면 안 되는 결정:
 - 홈은 캘린더다.
+- 한 화면의 primary CTA는 하나만 둔다.
 - 초기 앱은 로컬 우선 개인 기록장이다.
 - 기록은 `Entry` 단일 모델 중심.
 - 카테고리는 enum 고정이 아니라 데이터로 관리.

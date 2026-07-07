@@ -2,6 +2,8 @@ import SwiftUI
 import Photos
 
 /// 선택 날짜의 사진을 우선 노출하는 사진 선택기 (Flowchart 3).
+/// 기본 그리드는 항상 "이 날짜" 사진이고, 상단의 카메라/전체 사진 버튼으로
+/// 촬영하거나 전체 사진첩에서 고를 수 있다.
 /// 권한 거부 시에도 기록 저장은 계속 가능하다.
 struct DatePhotoPickerView: View {
     let date: Date
@@ -11,16 +13,20 @@ struct DatePhotoPickerView: View {
     @EnvironmentObject private var photoService: PhotoLibraryService
     @Environment(\.dismiss) private var dismiss
 
-    enum Tab: String, CaseIterable {
-        case thisDate = "이 날짜"
-        case all = "전체"
+    enum Tab {
+        case thisDate
+        case all
     }
 
     @State private var tab: Tab = .thisDate
     @State private var dateAssets: [PHAsset] = []
     @State private var allAssets: [PHAsset] = []
     @State private var selectedIds: [String] = []
+    /// 카메라로 촬영했거나 이전에 첨부한 앱 내부 저장 사진 (PHAsset 아님).
+    @State private var capturedAssets: [MediaAsset] = []
     @State private var isLoading = true
+    @State private var showCamera = false
+    @State private var toastMessage: String?
 
     private let columns = [
         GridItem(.flexible(), spacing: 4),
@@ -28,20 +34,15 @@ struct DatePhotoPickerView: View {
         GridItem(.flexible(), spacing: 4)
     ]
 
+    private var selectedCount: Int {
+        selectedIds.count + capturedAssets.count
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("사진 범위", selection: $tab) {
-                    ForEach(Tab.allCases, id: \.self) { tab in
-                        Text(tab.rawValue).tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, AppLayout.horizontalPadding)
-                .padding(.vertical, AppLayout.smallGap)
-
+                sourceButtons
                 content
-
                 bottomBar
             }
             .background(AppColors.bg)
@@ -52,10 +53,60 @@ struct DatePhotoPickerView: View {
                     Button("닫기") { dismiss() }
                 }
             }
+            .toast(message: $toastMessage)
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraCaptureView { image in
+                    if let asset = photoService.saveCapturedImage(image) {
+                        capturedAssets.append(asset)
+                    } else {
+                        toastMessage = "사진을 저장하지 못했어요."
+                    }
+                }
+                .ignoresSafeArea()
+            }
             .task {
                 await loadIfNeeded()
             }
         }
+    }
+
+    /// 상단 소스 버튼: 카메라 촬영 / 전체 사진 전환.
+    private var sourceButtons: some View {
+        HStack(spacing: AppLayout.smallGap) {
+            Button {
+                if CameraCaptureView.isCameraAvailable {
+                    showCamera = true
+                } else {
+                    toastMessage = "이 기기에서는 카메라를 쓸 수 없어요."
+                }
+            } label: {
+                Label("카메라", systemImage: "camera")
+                    .font(AppTypography.callout)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(AppColors.surfaceAlt)
+                    .foregroundStyle(AppColors.text)
+                    .clipShape(Capsule())
+            }
+            .accessibilityLabel("카메라로 촬영")
+
+            Button {
+                withAnimation { tab = tab == .all ? .thisDate : .all }
+            } label: {
+                Label(tab == .all ? "이 날짜 사진" : "전체 사진", systemImage: "photo.on.rectangle")
+                    .font(AppTypography.callout)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(tab == .all ? AppColors.primary.opacity(0.12) : AppColors.surfaceAlt)
+                    .foregroundStyle(tab == .all ? AppColors.primary : AppColors.text)
+                    .clipShape(Capsule())
+            }
+            .accessibilityLabel(tab == .all ? "이 날짜 사진만 보기" : "전체 사진에서 선택")
+
+            Spacer()
+        }
+        .padding(.horizontal, AppLayout.horizontalPadding)
+        .padding(.vertical, AppLayout.smallGap)
     }
 
     @ViewBuilder
@@ -90,10 +141,13 @@ struct DatePhotoPickerView: View {
 
     private var deniedState: some View {
         VStack {
+            if !capturedAssets.isEmpty {
+                capturedStrip
+            }
             EmptyStateView(
                 iconName: "photo.on.rectangle.angled",
                 title: "사진 접근이 꺼져 있어요",
-                subtitle: "설정에서 권한을 허용하거나, 사진 없이 기록을 계속할 수 있어요.",
+                subtitle: "설정에서 권한을 허용하거나, 카메라 촬영 또는 사진 없이 기록을 계속할 수 있어요.",
                 actionTitle: "설정 열기"
             ) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -126,52 +180,95 @@ struct DatePhotoPickerView: View {
         .background(AppColors.surfaceAlt)
     }
 
-    @ViewBuilder
-    private var photoGrid: some View {
-        let assets = tab == .thisDate ? dateAssets : allAssets
-        if isLoading {
-            ProgressView().frame(maxHeight: .infinity)
-        } else if assets.isEmpty {
-            VStack {
-                EmptyStateView(
-                    iconName: "photo",
-                    title: tab == .thisDate ? "이 날짜에 찍은 사진이 없어요" : "표시할 사진이 없어요",
-                    subtitle: tab == .thisDate ? "전체 사진에서 골라볼 수 있어요." : nil,
-                    actionTitle: tab == .thisDate ? "전체 사진 보기" : nil
-                ) {
-                    tab = .all
-                }
-            }
-            .frame(maxHeight: .infinity)
-        } else {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 4) {
-                    ForEach(assets, id: \.localIdentifier) { asset in
-                        PhotoGridCell(
-                            asset: asset,
-                            isSelected: selectedIds.contains(asset.localIdentifier),
-                            selectionIndex: selectedIds.firstIndex(of: asset.localIdentifier).map { $0 + 1 }
-                        ) {
-                            toggleSelection(asset)
+    /// 촬영한 사진 미리보기 (자동 선택 상태).
+    private var capturedStrip: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("촬영한 사진")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textMuted)
+                .padding(.horizontal, AppLayout.horizontalPadding)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: AppLayout.smallGap) {
+                    ForEach(capturedAssets) { asset in
+                        ZStack(alignment: .topTrailing) {
+                            AssetThumbnailView(asset: asset)
+                                .frame(width: 64, height: 64)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                            Button {
+                                capturedAssets.removeAll { $0.id == asset.id }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(.white, Color.black.opacity(0.5))
+                            }
+                            .padding(2)
+                            .accessibilityLabel("촬영한 사진 제거")
                         }
                     }
                 }
                 .padding(.horizontal, AppLayout.horizontalPadding)
-                .padding(.vertical, AppLayout.smallGap)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private var photoGrid: some View {
+        let assets = tab == .thisDate ? dateAssets : allAssets
+        VStack(spacing: 0) {
+            if !capturedAssets.isEmpty {
+                capturedStrip
+            }
+            if isLoading {
+                ProgressView().frame(maxHeight: .infinity)
+            } else if assets.isEmpty {
+                VStack {
+                    EmptyStateView(
+                        iconName: "photo",
+                        title: tab == .thisDate ? "이 날짜에 찍은 사진이 없어요" : "표시할 사진이 없어요",
+                        subtitle: tab == .thisDate ? "카메라로 찍거나 전체 사진에서 골라보세요." : nil,
+                        actionTitle: tab == .thisDate ? "전체 사진 보기" : nil
+                    ) {
+                        withAnimation { tab = .all }
+                    }
+                }
+                .frame(maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppLayout.smallGap) {
+                        Text(tab == .thisDate ? "\(DateUtils.short(date))에 찍은 사진" : "전체 사진")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textMuted)
+                            .padding(.horizontal, AppLayout.horizontalPadding)
+                        LazyVGrid(columns: columns, spacing: 4) {
+                            ForEach(assets, id: \.localIdentifier) { asset in
+                                PhotoGridCell(
+                                    asset: asset,
+                                    isSelected: selectedIds.contains(asset.localIdentifier),
+                                    selectionIndex: selectedIds.firstIndex(of: asset.localIdentifier).map { $0 + 1 }
+                                ) {
+                                    toggleSelection(asset)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, AppLayout.horizontalPadding)
+                    }
+                    .padding(.vertical, AppLayout.smallGap)
+                }
             }
         }
     }
 
     private var bottomBar: some View {
         HStack {
-            Text(selectedIds.isEmpty ? "사진을 선택하세요" : "\(selectedIds.count)장 선택됨")
+            Text(selectedCount == 0 ? "사진을 선택하세요" : "\(selectedCount)장 선택됨")
                 .font(AppTypography.callout)
                 .foregroundStyle(AppColors.textMuted)
             Spacer()
             Button("추가") { finish() }
                 .font(AppTypography.headline)
-                .foregroundStyle(selectedIds.isEmpty ? AppColors.textMuted : AppColors.primary)
-                .disabled(selectedIds.isEmpty && alreadySelected.isEmpty)
+                .foregroundStyle(selectedCount == 0 && alreadySelected.isEmpty ? AppColors.textMuted : AppColors.primary)
+                .disabled(selectedCount == 0 && alreadySelected.isEmpty)
         }
         .padding(.horizontal, AppLayout.horizontalPadding)
         .padding(.vertical, AppLayout.mediumGap)
@@ -183,6 +280,7 @@ struct DatePhotoPickerView: View {
     private func loadIfNeeded() async {
         photoService.refreshPermission()
         selectedIds = alreadySelected.compactMap { $0.localIdentifier }
+        capturedAssets = alreadySelected.filter { $0.localIdentifier == nil }
         if photoService.permission == .notDetermined {
             await photoService.requestPermission()
         }
@@ -204,9 +302,6 @@ struct DatePhotoPickerView: View {
             dateAssets = dated
             allAssets = all
             isLoading = false
-            if dated.isEmpty {
-                tab = .all
-            }
         }
     }
 
@@ -219,8 +314,8 @@ struct DatePhotoPickerView: View {
     }
 
     private func finish() {
-        // 이미 MediaAsset으로 저장된 사진은 재사용하고, 새 선택만 새 asset을 만든다.
-        var result: [MediaAsset] = []
+        // 촬영 사진 + 사진첩 선택. 이미 MediaAsset으로 저장된 사진은 재사용한다.
+        var result: [MediaAsset] = capturedAssets
         for localId in selectedIds {
             if let existing = alreadySelected.first(where: { $0.localIdentifier == localId }) {
                 result.append(existing)

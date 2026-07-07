@@ -125,8 +125,12 @@ struct RecordCardPickerView: View {
 
     private func loadCoverImage() {
         guard let entry,
-              let cover = entryRepository.coverAsset(for: entry),
-              let localId = cover.localIdentifier,
+              let cover = entryRepository.coverAsset(for: entry) else { return }
+        if let localImage = cover.loadLocalImage() {
+            coverImage = localImage
+            return
+        }
+        guard let localId = cover.localIdentifier,
               let phAsset = photoService.fetchAsset(localIdentifier: localId) else { return }
         photoService.requestFullImage(for: phAsset) { image in
             DispatchQueue.main.async {

@@ -34,8 +34,13 @@ struct AssetThumbnailView: View {
     }
 
     private func loadThumbnail(size: CGSize) {
-        guard image == nil,
-              let localId = asset.localIdentifier,
+        guard image == nil else { return }
+        // 카메라 촬영 등 앱 내부 저장 이미지 우선
+        if let localImage = asset.loadLocalImage() {
+            image = localImage
+            return
+        }
+        guard let localId = asset.localIdentifier,
               let phAsset = photoService.fetchAsset(localIdentifier: localId) else { return }
         photoService.requestThumbnail(for: phAsset, size: size) { loaded in
             DispatchQueue.main.async {

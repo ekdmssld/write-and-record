@@ -370,6 +370,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Write & Record";
+				INFOPLIST_KEY_NSCameraUsageDescription = "기록에 첨부할 사진을 바로 촬영하기 위해 카메라 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "만든 기록 카드를 사진 앱에 저장하기 위해 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "선택한 날짜의 사진을 기록에 첨부하기 위해 사진 접근이 필요해요.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -400,6 +401,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Write & Record";
+				INFOPLIST_KEY_NSCameraUsageDescription = "기록에 첨부할 사진을 바로 촬영하기 위해 카메라 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "만든 기록 카드를 사진 앱에 저장하기 위해 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "선택한 날짜의 사진을 기록에 첨부하기 위해 사진 접근이 필요해요.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -430,6 +432,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Write & Record";
+				INFOPLIST_KEY_NSCameraUsageDescription = "기록에 첨부할 사진을 바로 촬영하기 위해 카메라 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "만든 기록 카드를 사진 앱에 저장하기 위해 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "선택한 날짜의 사진을 기록에 첨부하기 위해 사진 접근이 필요해요.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -460,6 +463,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Write & Record";
+				INFOPLIST_KEY_NSCameraUsageDescription = "기록에 첨부할 사진을 바로 촬영하기 위해 카메라 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "만든 기록 카드를 사진 앱에 저장하기 위해 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "선택한 날짜의 사진을 기록에 첨부하기 위해 사진 접근이 필요해요.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

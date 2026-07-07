@@ -109,6 +109,31 @@ final class PhotoLibraryService: ObservableObject {
         )
     }
 
+    /// 카메라로 촬영한 이미지를 앱 내부 저장소에 저장하고 MediaAsset으로 만든다.
+    /// (사진첩 권한 없이도 동작해야 하므로 PHAsset을 만들지 않는다.)
+    func saveCapturedImage(_ image: UIImage) -> MediaAsset? {
+        guard let data = image.jpegData(compressionQuality: 0.9) else { return nil }
+        let fileName = "capture-\(UUID().uuidString).jpg"
+        let url = PersistenceStore.dataDirectory.appendingPathComponent(fileName)
+        do {
+            try data.write(to: url, options: [.atomic])
+        } catch {
+            return nil
+        }
+        return MediaAsset(
+            id: UUID().uuidString,
+            localIdentifier: nil,
+            type: .photo,
+            dateTaken: Date(),
+            width: Int(image.size.width * image.scale),
+            height: Int(image.size.height * image.scale),
+            thumbnailPath: nil,
+            localPath: fileName,
+            remoteUrl: nil,
+            createdAt: Date()
+        )
+    }
+
     /// 카드 이미지를 사진 앱에 저장.
     func saveImageToPhotos(_ image: UIImage) async -> Bool {
         let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
@@ -120,5 +145,14 @@ final class PhotoLibraryService: ObservableObject {
                 continuation.resume(returning: success)
             }
         }
+    }
+}
+
+extension MediaAsset {
+    /// 앱 내부 저장소(촬영 사진 등)에 있는 이미지를 로드한다.
+    func loadLocalImage() -> UIImage? {
+        guard let localPath else { return nil }
+        let url = PersistenceStore.dataDirectory.appendingPathComponent(localPath)
+        return UIImage(contentsOfFile: url.path)
     }
 }

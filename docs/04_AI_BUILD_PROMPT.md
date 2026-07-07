@@ -8,6 +8,7 @@
 - `docs/06_DISTRIBUTION_AND_RELEASE_PLAN.md`
 - `docs/07_CORE_STRUCTURE_DATA_PRIVACY_BACKUP.md`
 - `docs/08_QA_BETA_TEST_PLAN.md`
+- `docs/09_VISUAL_DIRECTION_AND_UI_CONCEPT.md`
 
 ## 역할
 
@@ -17,6 +18,7 @@
 - 사용자가 하루하루를 실제로 기록하고 다시 확인할 수 있어야 한다.
 - 캘린더 중심의 기록 루프가 카드/소셜/AI보다 먼저다.
 - 데이터 유실 방지와 JSON export는 MVP의 일부다.
+- 화면은 "조용히 쌓이는 개인 블로그"처럼 느껴져야 하며, 한 화면의 primary CTA는 하나만 둔다.
 
 ## 구현 지시
 

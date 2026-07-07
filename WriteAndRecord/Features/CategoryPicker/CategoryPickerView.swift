@@ -25,6 +25,31 @@ struct CategoryPickerView: View {
                         .foregroundStyle(AppColors.textMuted)
                 }
 
+                // 커스텀 카테고리 생성은 상단에 고정 노출
+                Button {
+                    showCustomForm = true
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(AppColors.primary)
+                        Text("커스텀 카테고리 만들기")
+                            .font(AppTypography.headline)
+                            .foregroundStyle(AppColors.text)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13))
+                            .foregroundStyle(AppColors.textMuted)
+                    }
+                    .padding(AppLayout.mediumGap)
+                    .background(AppColors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                            .stroke(AppColors.line, lineWidth: 1)
+                    )
+                }
+                .accessibilityLabel("커스텀 카테고리 만들기")
+
                 searchField
 
                 if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -33,14 +58,6 @@ struct CategoryPickerView: View {
                     subcategorySection(selectedMain)
                 } else {
                     mainCategoryGrid
-                }
-
-                Button {
-                    showCustomForm = true
-                } label: {
-                    Label("커스텀 카테고리 만들기", systemImage: "plus.circle")
-                        .font(AppTypography.headline)
-                        .foregroundStyle(AppColors.primary)
                 }
             }
             .padding(.horizontal, AppLayout.horizontalPadding)

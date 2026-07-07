@@ -86,6 +86,10 @@ struct CalendarView: View {
 
         return Button {
             selectedDate = day
+            // 기록이 없는 날짜는 탭이 곧 "기록 추가"로 이어진다 (기록 있는 날짜는 목록 표시).
+            if entries.isEmpty {
+                router.push(.categoryPicker(date: day))
+            }
         } label: {
             VStack(spacing: 4) {
                 Text("\(calendar.component(.day, from: day))")
@@ -144,9 +148,9 @@ struct CalendarView: View {
             if entries.isEmpty {
                 EmptyStateView(
                     iconName: "square.and.pencil",
-                    title: "아직 기록이 없어요",
-                    subtitle: "이 날의 첫 기록을 남겨볼까요?",
-                    actionTitle: "첫 기록 남기기"
+                    title: "이 날의 기록이 비어 있어요",
+                    subtitle: "짧은 문장 하나만 남겨도 괜찮아요.",
+                    actionTitle: "이 날 기록하기"
                 ) {
                     router.push(.categoryPicker(date: selectedDate))
                 }

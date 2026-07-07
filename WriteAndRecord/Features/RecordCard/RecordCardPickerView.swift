@@ -11,6 +11,9 @@ struct RecordCardPickerView: View {
 
     @State private var selectedTemplate: RecordCardTemplate = .minimalPhoto
     @State private var coverImage: UIImage?
+    @State private var dayImages: [UIImage] = []
+    @State private var dayTitles: [String] = []
+    @State private var userPickedTemplate = false
     @State private var shareURL: URL?
     @State private var toastMessage: String?
     @State private var isExporting = false
@@ -25,7 +28,9 @@ struct RecordCardPickerView: View {
             entry: entry,
             categoryName: categoryRepository.displayName(forEntry: entry),
             categoryColorHex: categoryRepository.colorHex(forEntry: entry),
-            coverImage: coverImage
+            coverImage: coverImage,
+            dayImages: dayImages,
+            dayTitles: dayTitles
         )
     }
 
@@ -58,6 +63,7 @@ struct RecordCardPickerView: View {
         .toast(message: $toastMessage)
         .task {
             loadCoverImage()
+            loadDayImages()
         }
         .sheet(isPresented: Binding(
             get: { shareURL != nil },
@@ -75,6 +81,7 @@ struct RecordCardPickerView: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: AppLayout.mediumGap) {
             ForEach(RecordCardTemplate.allCases) { template in
                 Button {
+                    userPickedTemplate = true
                     withAnimation(.easeInOut(duration: 0.1)) {
                         selectedTemplate = template
                     }
@@ -135,6 +142,48 @@ struct RecordCardPickerView: View {
         photoService.requestFullImage(for: phAsset) { image in
             DispatchQueue.main.async {
                 self.coverImage = image
+            }
+        }
+    }
+
+    /// 같은 날짜의 모든 기록에서 사진을 시간순으로 모은다 (하루 모음 카드용).
+    private func loadDayImages() {
+        guard let entry else { return }
+        let dayEntries = entryRepository.entries(on: entry.date).sorted { $0.createdAt < $1.createdAt }
+        dayTitles = dayEntries.map { $0.title }
+
+        var seenAssetIds = Set<String>()
+        var orderedAssets: [MediaAsset] = []
+        for dayEntry in dayEntries {
+            for asset in entryRepository.assets(for: dayEntry) where !seenAssetIds.contains(asset.id) {
+                seenAssetIds.insert(asset.id)
+                orderedAssets.append(asset)
+            }
+        }
+        let targets = Array(orderedAssets.prefix(9))
+
+        Task {
+            var loaded: [UIImage] = []
+            for asset in targets {
+                if let localImage = asset.loadLocalImage() {
+                    loaded.append(localImage)
+                    continue
+                }
+                guard let localId = asset.localIdentifier,
+                      let phAsset = photoService.fetchAsset(localIdentifier: localId) else { continue }
+                let image: UIImage? = await withCheckedContinuation { continuation in
+                    photoService.requestFullImage(for: phAsset) { continuation.resume(returning: $0) }
+                }
+                if let image {
+                    loaded.append(image)
+                }
+            }
+            await MainActor.run {
+                dayImages = loaded
+                // 하루에 사진이 여러 장이면 기본 템플릿을 하루 모음으로 제안
+                if loaded.count > 1 && !userPickedTemplate {
+                    selectedTemplate = .dayCollage
+                }
             }
         }
     }

@@ -15,6 +15,7 @@ enum RecordCardTemplate: String, CaseIterable, Identifiable {
     case wishlist
     case placeMemory
     case textDiary
+    case dayCollage
 
     var id: String { rawValue }
 
@@ -26,6 +27,7 @@ enum RecordCardTemplate: String, CaseIterable, Identifiable {
         case .wishlist: return "Wishlist"
         case .placeMemory: return "Place Memory"
         case .textDiary: return "Text Diary"
+        case .dayCollage: return "하루 모음"
         }
     }
 
@@ -37,6 +39,7 @@ enum RecordCardTemplate: String, CaseIterable, Identifiable {
         case .wishlist: return "bookmark"
         case .placeMemory: return "mappin.and.ellipse"
         case .textDiary: return "book.closed"
+        case .dayCollage: return "square.grid.2x2"
         }
     }
 }

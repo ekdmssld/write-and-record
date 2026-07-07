@@ -6,6 +6,10 @@ struct RecordCardContext {
     let categoryName: String
     let categoryColorHex: String
     let coverImage: UIImage?
+    /// 같은 날짜의 모든 사진 (여러 게시글/한 게시글 여러 사진 포함). 하루 모음 카드에 사용.
+    var dayImages: [UIImage] = []
+    /// 같은 날짜 기록들의 제목.
+    var dayTitles: [String] = []
 }
 
 /// 1080x1350 (4:5) 카드. 프리뷰/export 공용 뷰 — 프리뷰는 축소 렌더링.
@@ -25,6 +29,7 @@ struct RecordCardView: View {
             case .wishlist: wishlistCard
             case .placeMemory: placeMemory
             case .textDiary: textDiary
+            case .dayCollage: dayCollage
             }
         }
         .frame(width: Self.baseSize.width, height: Self.baseSize.height)
@@ -206,6 +211,83 @@ struct RecordCardView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
             .background(.black.opacity(0.55))
+        }
+    }
+
+    /// 한 날짜의 사진들을 연속 콜라주로 담는 카드.
+    private var dayCollage: some View {
+        let images = Array(context.dayImages.prefix(9))
+        let titles = Array(context.dayTitles.prefix(3))
+
+        return VStack(spacing: 0) {
+            // header
+            HStack(alignment: .firstTextBaseline) {
+                Text(dateText)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(AppColors.text)
+                Spacer()
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(categoryColor)
+                        .frame(width: 7, height: 7)
+                    Text(images.count > 1 ? "\(images.count)장의 순간" : context.categoryName)
+                        .font(.system(size: 11))
+                        .foregroundStyle(AppColors.textMuted)
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+
+            // photo collage
+            collageGrid(images)
+                .frame(maxHeight: .infinity)
+                .clipped()
+
+            // footer: 그날 기록 제목들
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(Array(titles.enumerated()), id: \.offset) { _, title in
+                    Text(title)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AppColors.text)
+                        .lineLimit(1)
+                }
+                if context.dayTitles.count > titles.count {
+                    Text("외 \(context.dayTitles.count - titles.count)개의 기록")
+                        .font(.system(size: 11))
+                        .foregroundStyle(AppColors.textMuted)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+        }
+        .background(AppColors.surface)
+    }
+
+    @ViewBuilder
+    private func collageGrid(_ images: [UIImage]) -> some View {
+        if images.isEmpty {
+            photoOrFallback
+        } else {
+            let columnsCount = images.count <= 1 ? 1 : (images.count <= 4 ? 2 : 3)
+            let rows: [[UIImage]] = stride(from: 0, to: images.count, by: columnsCount).map {
+                Array(images[$0..<min($0 + columnsCount, images.count)])
+            }
+            VStack(spacing: 2) {
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    HStack(spacing: 2) {
+                        ForEach(Array(row.enumerated()), id: \.offset) { _, image in
+                            Color.clear
+                                .overlay(
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFill()
+                                )
+                                .clipped()
+                        }
+                    }
+                }
+            }
         }
     }
 

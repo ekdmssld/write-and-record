@@ -8,27 +8,112 @@ struct OnboardingNicknameView: View {
     @Binding var profile: UserProfile
     let onNext: () -> Void
 
+    private let nicknameChecker: NicknameChecking = LocalNicknameChecker()
+
+    @State private var checkedNickname: String?
+    @State private var checkResult: NicknameCheckResult?
+    @State private var isChecking = false
+
+    /// 다음 단계는 중복 확인을 통과한 닉네임만 허용.
+    private var isCheckedAndAvailable: Bool {
+        checkResult == .available
+            && checkedNickname == profile.nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             OnboardingStepContainer(title: "어떻게 불러드릴까요?", subtitle: "닉네임은 나중에 바꿀 수 있어요.") {
-                TextField("닉네임 (1~20자)", text: $profile.nickname)
-                    .font(AppTypography.body)
-                    .padding(14)
-                    .background(AppColors.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: AppLayout.buttonRadius))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppLayout.buttonRadius)
-                            .stroke(AppColors.line, lineWidth: 1)
-                    )
-                    .submitLabel(.done)
+                VStack(alignment: .leading, spacing: AppLayout.smallGap) {
+                    HStack(spacing: AppLayout.smallGap) {
+                        TextField("닉네임 (1~20자)", text: $profile.nickname)
+                            .font(AppTypography.body)
+                            .padding(14)
+                            .background(AppColors.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: AppLayout.buttonRadius))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppLayout.buttonRadius)
+                                    .stroke(AppColors.line, lineWidth: 1)
+                            )
+                            .submitLabel(.done)
+
+                        Button {
+                            runCheck()
+                        } label: {
+                            if isChecking {
+                                ProgressView()
+                                    .frame(width: 74, height: 48)
+                            } else {
+                                Text("중복 확인")
+                                    .font(AppTypography.callout)
+                                    .frame(width: 74, height: 48)
+                            }
+                        }
+                        .background(AppColors.surfaceAlt)
+                        .foregroundStyle(AppColors.text)
+                        .clipShape(RoundedRectangle(cornerRadius: AppLayout.buttonRadius))
+                        .disabled(isChecking || profile.nickname.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .accessibilityLabel("닉네임 중복 확인")
+                    }
+
+                    checkResultMessage
+                }
             }
 
-            PrimaryButton(title: "다음", isEnabled: Validation.isValidNickname(profile.nickname)) {
+            PrimaryButton(title: "다음", isEnabled: isCheckedAndAvailable) {
                 profile.nickname = profile.nickname.trimmingCharacters(in: .whitespacesAndNewlines)
                 onNext()
             }
             .padding(.horizontal, AppLayout.horizontalPadding)
             .padding(.bottom, AppLayout.largeGap)
+        }
+        .onAppear {
+            // 뒤로가기/draft 복원으로 돌아온 경우, 저장돼 있던 닉네임은 확인된 것으로 간주.
+            let existing = profile.nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !existing.isEmpty && Validation.isValidNickname(existing) && checkResult == nil {
+                checkedNickname = existing
+                checkResult = .available
+            }
+        }
+        .onChange(of: profile.nickname) { _, newValue in
+            // 닉네임이 바뀌면 다시 확인해야 함
+            if checkedNickname != newValue.trimmingCharacters(in: .whitespacesAndNewlines) {
+                checkResult = nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var checkResultMessage: some View {
+        switch checkResult {
+        case .available:
+            Label("사용할 수 있는 닉네임이에요.", systemImage: "checkmark.circle.fill")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.success)
+        case .taken:
+            Label("사용할 수 없는 닉네임이에요.", systemImage: "xmark.circle.fill")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.danger)
+        case .invalid(let message):
+            Label(message, systemImage: "exclamationmark.circle.fill")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.danger)
+        case nil:
+            Text("중복 확인을 눌러 사용 가능 여부를 확인해 주세요.")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textMuted)
+        }
+    }
+
+    private func runCheck() {
+        let candidate = profile.nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        isChecking = true
+        Task {
+            let result = await nicknameChecker.check(candidate)
+            await MainActor.run {
+                checkResult = result
+                checkedNickname = candidate
+                isChecking = false
+            }
         }
     }
 }

@@ -13,6 +13,18 @@ struct OnboardingFlowView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // back navigation (1단계에서는 숨김, 높이는 유지해 레이아웃 점프 방지)
+            HStack {
+                if step > 0 {
+                    IconButton(systemName: "chevron.left", accessibilityLabel: "이전 단계로") {
+                        goBack()
+                    }
+                }
+                Spacer()
+            }
+            .frame(height: 44)
+            .padding(.horizontal, AppLayout.smallGap)
+
             // progress
             HStack(spacing: 6) {
                 ForEach(0..<totalSteps, id: \.self) { index in
@@ -63,8 +75,15 @@ struct OnboardingFlowView: View {
 
     private func goNext() {
         let next = min(step + 1, totalSteps - 1)
-        step = next
+        withAnimation { step = next }
         appState.saveOnboardingDraft(step: next, profile: draftProfile)
+    }
+
+    /// 뒤로가기: 입력값은 draftProfile에 남아 있으므로 그대로 유지된다.
+    private func goBack() {
+        let previous = max(step - 1, 0)
+        withAnimation { step = previous }
+        appState.saveOnboardingDraft(step: previous, profile: draftProfile)
     }
 
     private func finish() {

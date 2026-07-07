@@ -9,11 +9,28 @@ struct CategoryPickerView: View {
 
     @State private var searchText = ""
     @State private var selectedMain: EntryCategory?
+    /// 최종 선택된 카테고리(메인 또는 세부). 하단 "기록하기" 버튼으로 진행한다.
+    @State private var selectedCategory: EntryCategory?
     @State private var showCustomForm = false
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
+        VStack(spacing: 0) {
+            pickerContent
+            recordBottomBar
+        }
+        .background(AppColors.bg)
+        .navigationTitle("카테고리 선택")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showCustomForm) {
+            CustomCategoryFormView(parentId: selectedMain?.id) { newCategory in
+                selectedCategory = newCategory
+            }
+        }
+    }
+
+    private var pickerContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppLayout.largeGap) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -63,13 +80,30 @@ struct CategoryPickerView: View {
             .padding(.horizontal, AppLayout.horizontalPadding)
             .padding(.vertical, AppLayout.mediumGap)
         }
-        .background(AppColors.bg)
-        .navigationTitle("카테고리 선택")
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showCustomForm) {
-            CustomCategoryFormView(parentId: selectedMain?.id) { newCategory in
-                openEditor(with: newCategory)
+    }
+
+    /// 하단 고정 CTA: 선택한 카테고리로 기록 시작.
+    private var recordBottomBar: some View {
+        VStack(spacing: AppLayout.smallGap) {
+            if let selectedCategory {
+                HStack(spacing: 6) {
+                    Text("선택한 카테고리:")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textMuted)
+                    CategoryChip(category: selectedCategory, isSelected: true)
+                }
             }
+            PrimaryButton(title: "기록하기", isEnabled: selectedCategory != nil) {
+                if let selectedCategory {
+                    openEditor(with: selectedCategory)
+                }
+            }
+        }
+        .padding(.horizontal, AppLayout.horizontalPadding)
+        .padding(.vertical, AppLayout.mediumGap)
+        .background(AppColors.surface)
+        .overlay(alignment: .top) {
+            Divider().overlay(AppColors.line)
         }
     }
 
@@ -98,9 +132,9 @@ struct CategoryPickerView: View {
             } else {
                 ForEach(matches) { category in
                     Button {
-                        openEditor(with: category)
+                        selectedCategory = category
                     } label: {
-                        CategoryChip(category: category)
+                        CategoryChip(category: category, isSelected: selectedCategory?.id == category.id)
                     }
                 }
             }
@@ -111,7 +145,10 @@ struct CategoryPickerView: View {
         LazyVGrid(columns: columns, spacing: AppLayout.mediumGap) {
             ForEach(categoryRepository.mainCategories) { category in
                 Button {
-                    withAnimation { selectedMain = category }
+                    withAnimation {
+                        selectedMain = category
+                        selectedCategory = category
+                    }
                 } label: {
                     VStack(spacing: AppLayout.smallGap) {
                         Image(systemName: category.icon)
@@ -135,7 +172,10 @@ struct CategoryPickerView: View {
         VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
             HStack {
                 Button {
-                    withAnimation { selectedMain = nil }
+                    withAnimation {
+                        selectedMain = nil
+                        selectedCategory = nil
+                    }
                 } label: {
                     Label("전체 카테고리", systemImage: "chevron.left")
                         .font(AppTypography.callout)
@@ -144,45 +184,31 @@ struct CategoryPickerView: View {
                 Spacer()
             }
 
-            CategoryChip(category: main, isSelected: true)
-
-            // 메인 카테고리 자체로 바로 기록
+            // 메인 카테고리 자체도 선택 가능
             Button {
-                openEditor(with: main)
+                selectedCategory = main
             } label: {
-                Text("'\(main.name)'(으)로 바로 기록하기")
-                    .font(AppTypography.callout)
-                    .foregroundStyle(AppColors.primary)
+                CategoryChip(category: main, isSelected: selectedCategory?.id == main.id)
             }
 
+            Text("세부 카테고리를 고르면 더 정확하게 모아볼 수 있어요.")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textMuted)
+
             let subs = categoryRepository.subcategories(of: main)
-            FlowLayoutChips(categories: subs) { category in
-                openEditor(with: category)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], alignment: .leading, spacing: 8) {
+                ForEach(subs) { category in
+                    Button {
+                        selectedCategory = category
+                    } label: {
+                        CategoryChip(category: category, isSelected: selectedCategory?.id == category.id)
+                    }
+                }
             }
         }
     }
 
     private func openEditor(with category: EntryCategory) {
         router.push(.entryEditor(date: date, categoryId: category.id, entryId: nil))
-    }
-}
-
-/// 세부 카테고리 chip 목록.
-struct FlowLayoutChips: View {
-    let categories: [EntryCategory]
-    let onSelect: (EntryCategory) -> Void
-
-    private let columns = [GridItem(.adaptive(minimum: 100), spacing: 8)]
-
-    var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(categories) { category in
-                Button {
-                    onSelect(category)
-                } label: {
-                    CategoryChip(category: category)
-                }
-            }
-        }
     }
 }

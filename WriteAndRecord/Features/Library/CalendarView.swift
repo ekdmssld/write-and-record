@@ -83,6 +83,8 @@ struct CalendarView: View {
                 }
                 .prefix(3)
         )
+        // 그날 기록 중 첫 번째 사진을 셀 배경으로 보여준다.
+        let coverAsset = entries.compactMap { entryRepository.coverAsset(for: $0) }.first
 
         return Button {
             selectedDate = day
@@ -92,19 +94,7 @@ struct CalendarView: View {
             }
         } label: {
             VStack(spacing: 4) {
-                Text("\(calendar.component(.day, from: day))")
-                    .font(AppTypography.callout)
-                    .foregroundStyle(isSelected ? AppColors.primaryText : AppColors.text)
-                    .frame(width: 32, height: 32)
-                    .background(
-                        ZStack {
-                            if isSelected {
-                                Circle().fill(AppColors.primary)
-                            } else if isToday {
-                                Circle().stroke(AppColors.primary, lineWidth: 1.5)
-                            }
-                        }
-                    )
+                dayNumberView(day, coverAsset: coverAsset, isSelected: isSelected, isToday: isToday)
                 HStack(spacing: 3) {
                     ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in
                         Circle()
@@ -117,6 +107,48 @@ struct CalendarView: View {
             .frame(maxWidth: .infinity, minHeight: 52)
         }
         .accessibilityLabel(dayCellLabel(day, entryCount: entries.count, isToday: isToday, isSelected: isSelected))
+    }
+
+    @ViewBuilder
+    private func dayNumberView(_ day: Date, coverAsset: MediaAsset?, isSelected: Bool, isToday: Bool) -> some View {
+        let dayNumber = "\(calendar.component(.day, from: day))"
+        if let coverAsset {
+            // 사진이 있는 날: 썸네일 위에 날짜 숫자 오버레이
+            ZStack {
+                AssetThumbnailView(asset: coverAsset)
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.black.opacity(0.28))
+                    )
+                Text(dayNumber)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.4), radius: 1)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        isSelected ? AppColors.primary : (isToday ? AppColors.primary.opacity(0.6) : .clear),
+                        lineWidth: isSelected ? 2.5 : 1.5
+                    )
+            )
+        } else {
+            Text(dayNumber)
+                .font(AppTypography.callout)
+                .foregroundStyle(isSelected ? AppColors.primaryText : AppColors.text)
+                .frame(width: 36, height: 36)
+                .background(
+                    ZStack {
+                        if isSelected {
+                            Circle().fill(AppColors.primary)
+                        } else if isToday {
+                            Circle().stroke(AppColors.primary, lineWidth: 1.5)
+                        }
+                    }
+                )
+        }
     }
 
     private func dayCellLabel(_ day: Date, entryCount: Int, isToday: Bool, isSelected: Bool) -> String {

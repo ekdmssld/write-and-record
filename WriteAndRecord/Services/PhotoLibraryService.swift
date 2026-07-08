@@ -70,13 +70,15 @@ final class PhotoLibraryService: ObservableObject {
         options.deliveryMode = .opportunistic
         options.isNetworkAccessAllowed = true // iCloud 사진 대응
         options.resizeMode = .fast
+        let finish = singleImageCompletion(completion)
         imageManager.requestImage(
             for: asset,
             targetSize: size,
             contentMode: .aspectFill,
             options: options
-        ) { image, _ in
-            completion(image)
+        ) { image, info in
+            guard !Self.isDegradedResult(info) else { return }
+            finish(Self.isFailedResult(info) ? nil : image)
         }
     }
 
@@ -84,14 +86,37 @@ final class PhotoLibraryService: ObservableObject {
         let options = PHImageRequestOptions()
         options.deliveryMode = .highQualityFormat
         options.isNetworkAccessAllowed = true
+        let finish = singleImageCompletion(completion)
         imageManager.requestImage(
             for: asset,
             targetSize: CGSize(width: 1600, height: 1600),
             contentMode: .aspectFit,
             options: options
-        ) { image, _ in
+        ) { image, info in
+            guard !Self.isDegradedResult(info) else { return }
+            finish(Self.isFailedResult(info) ? nil : image)
+        }
+    }
+
+    private func singleImageCompletion(_ completion: @escaping (UIImage?) -> Void) -> (UIImage?) -> Void {
+        let lock = NSLock()
+        var didFinish = false
+        return { image in
+            lock.lock()
+            defer { lock.unlock() }
+            guard !didFinish else { return }
+            didFinish = true
             completion(image)
         }
+    }
+
+    private static func isDegradedResult(_ info: [AnyHashable: Any]?) -> Bool {
+        (info?[PHImageResultIsDegradedKey] as? Bool) == true
+    }
+
+    private static func isFailedResult(_ info: [AnyHashable: Any]?) -> Bool {
+        (info?[PHImageCancelledKey] as? Bool) == true
+            || info?[PHImageErrorKey] != nil
     }
 
     func makeMediaAsset(from phAsset: PHAsset) -> MediaAsset {

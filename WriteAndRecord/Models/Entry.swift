@@ -34,11 +34,15 @@ struct Entry: Codable, Identifiable, Equatable {
     var links: [LinkRef]
     var metadata: [String: String]
     var collectionIds: [String]
+    /// 소셜 공개 범위. 기존 데이터 호환을 위해 optional이며 nil은 private (docs/10 4장).
+    var visibility: EntryVisibility?
     var createdAt: Date
     var updatedAt: Date
     var deletedAt: Date?
 
     var isDeleted: Bool { deletedAt != nil }
+
+    var effectiveVisibility: EntryVisibility { visibility ?? .privateOnly }
 
     static func new(userId: String, date: Date, categoryId: String) -> Entry {
         let now = Date()
@@ -62,6 +66,7 @@ struct Entry: Codable, Identifiable, Equatable {
             links: [],
             metadata: [:],
             collectionIds: [],
+            visibility: .privateOnly,
             createdAt: now,
             updatedAt: now,
             deletedAt: nil

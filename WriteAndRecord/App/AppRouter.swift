@@ -31,9 +31,9 @@ struct MainTabView: View {
                     Label("기록", systemImage: "plus.circle")
                 }
 
-            SearchView()
+            SocialView()
                 .tabItem {
-                    Label("검색", systemImage: "magnifyingglass")
+                    Label("소셜", systemImage: "person.2")
                 }
 
             SettingsView()

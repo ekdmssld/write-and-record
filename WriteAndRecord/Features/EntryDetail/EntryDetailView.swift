@@ -101,6 +101,11 @@ struct EntryDetailView: View {
                         Image(systemName: "pencil")
                             .font(.system(size: 11))
                             .foregroundStyle(AppColors.textMuted)
+                        if FeatureFlags.enableFriendFeatures {
+                            Label(entry.effectiveVisibility.displayName, systemImage: entry.effectiveVisibility.iconName)
+                                .font(.system(size: 10))
+                                .foregroundStyle(AppColors.textMuted)
+                        }
                         Spacer()
                     }
                 }

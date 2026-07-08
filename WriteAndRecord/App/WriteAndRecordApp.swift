@@ -6,6 +6,7 @@ struct WriteAndRecordApp: App {
     @StateObject private var entryRepository = EntryRepository()
     @StateObject private var categoryRepository = CategoryRepository()
     @StateObject private var photoService = PhotoLibraryService()
+    @StateObject private var socialRepository = SocialRepository()
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,7 @@ struct WriteAndRecordApp: App {
                 .environmentObject(entryRepository)
                 .environmentObject(categoryRepository)
                 .environmentObject(photoService)
+                .environmentObject(socialRepository)
                 .tint(AppColors.primary)
         }
     }

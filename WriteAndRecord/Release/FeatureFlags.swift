@@ -14,7 +14,9 @@ enum FeatureFlags {
     }
 
     static var enableFriendFeatures: Bool {
-        false // MVP: 설정값만 저장, 기능은 미노출
+        // 소셜은 아직 로컬 mock 단계 (docs/10 2장): Debug에서만 켠다.
+        // 서버/공개 범위 검증이 준비되면 BetaRelease부터 단계적으로 연다.
+        BuildConfiguration.current == .debug
     }
 
     static var enableCloudSync: Bool {

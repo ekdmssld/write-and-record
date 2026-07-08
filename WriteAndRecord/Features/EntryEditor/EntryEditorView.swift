@@ -13,6 +13,7 @@ struct EntryEditorView: View {
     @State private var showCancelConfirm = false
     @State private var showSaveFailedAlert = false
     @State private var showCategoryChange = false
+    @State private var showVisibilitySheet = false
     @State private var toastMessage: String?
     /// 현재 펼쳐진 추가 섹션 (한 번에 하나).
     @State private var activeSection: EditorSection?
@@ -34,6 +35,7 @@ struct EntryEditorView: View {
                 titleSection
                 dateRow
                 ratingWishRow
+                visibilityRow
                 bodySection
                 additionalSections
                 metadataSection
@@ -196,6 +198,49 @@ struct EntryEditorView: View {
             Spacer()
             WishlistToggle(isWishlist: $viewModel.entry.isWishlist)
                 .onChange(of: viewModel.entry.isWishlist) { _, _ in viewModel.noteChanged() }
+        }
+    }
+
+    /// 공개 범위 선택 (docs/11 8장). 기본은 나만 보기.
+    @ViewBuilder
+    private var visibilityRow: some View {
+        if FeatureFlags.enableFriendFeatures {
+            let current = viewModel.entry.effectiveVisibility
+            Button {
+                showVisibilitySheet = true
+            } label: {
+                HStack(spacing: AppLayout.smallGap) {
+                    Image(systemName: current.iconName)
+                        .foregroundStyle(AppColors.textMuted)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(current.displayName)
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppColors.text)
+                        Text(current.explanation)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textMuted)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppColors.textMuted)
+                }
+                .padding(AppLayout.mediumGap)
+                .background(AppColors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                        .stroke(AppColors.line, lineWidth: 1)
+                )
+            }
+            .accessibilityLabel("공개 범위, 현재 \(current.displayName)")
+            .sheet(isPresented: $showVisibilitySheet) {
+                VisibilityPickerSheet(current: current) { newValue in
+                    viewModel.entry.visibility = newValue
+                    viewModel.noteChanged()
+                }
+            }
         }
     }
 

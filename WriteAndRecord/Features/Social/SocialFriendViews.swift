@@ -141,18 +141,82 @@ struct SocialFriendsTabView: View {
     }
 }
 
-/// 초대 링크 share sheet (mock 초대 코드 포함).
+/// 초대하기 시트: 초대 링크 표시 + 링크 복사 + 공유(카카오톡/메시지 등 설치된 앱).
 struct InviteShareSheet: View {
     @EnvironmentObject private var socialRepository: SocialRepository
     @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
 
-    var body: some View {
+    @State private var showSystemShare = false
+    @State private var toastMessage: String?
+
+    private var invite: SocialInvite {
+        socialRepository.currentInvite()
+    }
+
+    private var inviteText: String {
         let message = socialRepository.inviteMessage(
             inviterNickname: appState.profile?.nickname ?? "친구",
             spaceName: appState.profile?.spaceName ?? "내 기록 공간"
         )
-        ShareSheet(items: [message])
-            .presentationDetents([.medium])
+        return "\(message)\n\(invite.inviteUrl)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
+            Text("초대하기")
+                .font(AppTypography.title2)
+                .foregroundStyle(AppColors.text)
+                .padding(.top, AppLayout.largeGap)
+
+            Text("앱을 쓰지 않는 친구에게도 보낼 수 있어요.")
+                .font(AppTypography.callout)
+                .foregroundStyle(AppColors.textMuted)
+
+            // 초대 링크 미리보기
+            HStack(spacing: AppLayout.smallGap) {
+                Image(systemName: "link")
+                    .foregroundStyle(AppColors.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(invite.inviteUrl)
+                        .font(AppTypography.callout)
+                        .foregroundStyle(AppColors.text)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text("초대 코드 \(invite.inviteCode)")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textMuted)
+                }
+                Spacer()
+            }
+            .padding(AppLayout.mediumGap)
+            .background(AppColors.surfaceAlt)
+            .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+
+            HStack(spacing: AppLayout.mediumGap) {
+                SecondaryButton(title: "링크 복사") {
+                    UIPasteboard.general.string = inviteText
+                    toastMessage = "초대 링크를 복사했어요."
+                }
+                PrimaryButton(title: "공유하기") {
+                    showSystemShare = true
+                }
+            }
+
+            Text("공유하기를 누르면 카카오톡, 메시지 등 설치된 앱으로 보낼 수 있어요.")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textMuted)
+
+            Spacer()
+        }
+        .padding(.horizontal, AppLayout.horizontalPadding)
+        .background(AppColors.bg)
+        .presentationDetents([.fraction(0.42)])
+        .presentationDragIndicator(.visible)
+        .toast(message: $toastMessage)
+        .sheet(isPresented: $showSystemShare) {
+            ShareSheet(items: [inviteText])
+        }
     }
 }
 

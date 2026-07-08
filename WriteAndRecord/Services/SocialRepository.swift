@@ -170,6 +170,32 @@ final class SocialRepository: ObservableObject {
         """
     }
 
+    // MARK: - Invite link
+
+    private let invitesFile = "socialInvites"
+
+    /// 활성 초대 링크를 반환하고, 없으면 새로 만든다.
+    /// URL은 아직 universal link 서버가 없어 placeholder 도메인을 쓴다 (docs/13 backlog).
+    func currentInvite() -> SocialInvite {
+        var invites = PersistenceStore.load([SocialInvite].self, from: invitesFile) ?? []
+        if let active = invites.first(where: { $0.inviterId == myUserId && $0.status == "active" }) {
+            return active
+        }
+        let code = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(8)).uppercased()
+        let invite = SocialInvite(
+            id: UUID().uuidString,
+            inviterId: myUserId,
+            inviteCode: code,
+            inviteUrl: "https://writeandrecord.app/invite/\(code)",
+            status: "active",
+            usedCount: 0,
+            createdAt: Date()
+        )
+        invites.append(invite)
+        PersistenceStore.save(invites, to: invitesFile)
+        return invite
+    }
+
     // MARK: - Moderation
 
     func block(userId: String) {

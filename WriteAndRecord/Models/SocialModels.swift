@@ -101,6 +101,17 @@ struct SocialEntry: Codable, Identifiable, Equatable {
     var visibility: EntryVisibility
 }
 
+/// 초대 링크 (docs/10 SocialInvite).
+struct SocialInvite: Codable, Identifiable, Equatable {
+    var id: String
+    var inviterId: String
+    var inviteCode: String
+    var inviteUrl: String
+    var status: String // active/used/expired/revoked
+    var usedCount: Int
+    var createdAt: Date
+}
+
 struct SocialReport: Codable, Identifiable {
     var id: String
     var reporterId: String

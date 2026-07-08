@@ -5,7 +5,7 @@ import Photos
 /// 권한이 없거나 원본이 삭제된 경우 placeholder를 보여준다.
 struct AssetThumbnailView: View {
     let asset: MediaAsset
-    var placeholderColorHex: String = "#B5AB9D"
+    var placeholderColorHex: String = "#B3A0A2"
 
     @EnvironmentObject private var photoService: PhotoLibraryService
     @State private var image: UIImage?

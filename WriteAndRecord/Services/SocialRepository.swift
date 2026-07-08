@@ -251,11 +251,11 @@ final class SocialRepository: ObservableObject {
             )
         }
         let mockEntries: [(author: String, daysAgo: Int, category: String, hex: String, title: String, body: String, rating: Int?)] = [
-            ("mock-friend-1", 0, "영화", "#A9B4C8", "듄 파트2 재관람", "화면이 큰 곳에서 다시 봐도 좋았다.", 5),
-            ("mock-friend-1", 2, "카페", "#D9BE7A", "골목 안 새 카페", "라떼가 진하고 자리가 조용함.", 4),
-            ("mock-friend-2", 1, "러닝", "#9DB79B", "아침 5km", "페이스 6:10. 날씨 최고.", nil),
-            ("mock-friend-3", 1, "책", "#C5BA9A", "미움받을 용기 다시 읽기", "밑줄 친 문장이 달라졌다.", 4),
-            ("mock-friend-3", 3, "책", "#C5BA9A", "이번 달 책 정리", "네 권 완독. 다음 달은 소설 위주로.", nil)
+            ("mock-friend-1", 0, "영화", "#B08A94", "듄 파트2 재관람", "화면이 큰 곳에서 다시 봐도 좋았다.", 5),
+            ("mock-friend-1", 2, "카페", "#D9C06A", "골목 안 새 카페", "라떼가 진하고 자리가 조용함.", 4),
+            ("mock-friend-2", 1, "러닝", "#999D4F", "아침 5km", "페이스 6:10. 날씨 최고.", nil),
+            ("mock-friend-3", 1, "책", "#C0A18A", "미움받을 용기 다시 읽기", "밑줄 친 문장이 달라졌다.", 4),
+            ("mock-friend-3", 3, "책", "#C0A18A", "이번 달 책 정리", "네 권 완독. 다음 달은 소설 위주로.", nil)
         ]
         mockPublicEntries = mockEntries.map { entry in
             SocialEntry(

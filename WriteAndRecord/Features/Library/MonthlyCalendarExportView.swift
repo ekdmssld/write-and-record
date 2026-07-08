@@ -253,7 +253,7 @@ struct MonthCalendarCardView: View {
                     .shadow(color: .black.opacity(0.5), radius: 1)
                     .padding(3)
             } else if let data {
-                AppColors.category(data.dotColors.first ?? "#B5AB9D").opacity(0.18)
+                AppColors.category(data.dotColors.first ?? "#B3A0A2").opacity(0.18)
                 VStack(spacing: 2) {
                     Text("\(dayNumber)")
                         .font(.system(size: 10, weight: .medium))

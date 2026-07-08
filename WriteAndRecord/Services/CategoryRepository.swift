@@ -107,6 +107,31 @@ final class CategoryRepository: ObservableObject {
         PersistenceStore.save(categories, to: categoriesFile)
     }
 
+    func moveCategories(parentId: String?, fromOffsets: IndexSet, toOffset: Int) {
+        var siblings = categories.filter { !$0.isArchived && $0.parentId == parentId }
+        moveItems(in: &siblings, fromOffsets: fromOffsets, toOffset: toOffset)
+
+        var reordered = categories
+        var movedIterator = siblings.makeIterator()
+        for index in reordered.indices where !reordered[index].isArchived && reordered[index].parentId == parentId {
+            if let nextCategory = movedIterator.next() {
+                reordered[index] = nextCategory
+            }
+        }
+
+        categories = reordered
+        PersistenceStore.save(categories, to: categoriesFile)
+    }
+
+    private func moveItems(in categories: inout [EntryCategory], fromOffsets: IndexSet, toOffset: Int) {
+        let movedCategories = fromOffsets.sorted().map { categories[$0] }
+        for offset in fromOffsets.sorted(by: >) {
+            categories.remove(at: offset)
+        }
+        let adjustedDestination = toOffset - fromOffsets.filter { $0 < toOffset }.count
+        categories.insert(contentsOf: movedCategories, at: adjustedDestination)
+    }
+
     /// 커스텀 카테고리 삭제(archive). 기존 Entry는 archivedCategoryName을 유지하도록 호출측에서 처리.
     func archive(_ category: EntryCategory) throws {
         guard !category.isDefault else { throw CategoryError.cannotDeleteDefault }

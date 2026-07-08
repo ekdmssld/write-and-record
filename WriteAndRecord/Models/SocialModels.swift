@@ -99,6 +99,7 @@ struct SocialEntry: Codable, Identifiable, Equatable {
     var rating: Int?
     var isWishlist: Bool
     var visibility: EntryVisibility
+    var coverAsset: MediaAsset?
 }
 
 /// 초대 링크 (docs/10 SocialInvite).

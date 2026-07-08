@@ -29,10 +29,10 @@ final class SocialRepository: ObservableObject {
     // MARK: - Feed
 
     /// 전체 탭: public 기록. 차단 관계 제외 (docs/10 8장).
-    func publicFeed(myEntries: [Entry], categories: [EntryCategory]) -> [SocialEntry] {
+    func publicFeed(myEntries: [Entry], categories: [EntryCategory], mediaAssets: [MediaAsset]) -> [SocialEntry] {
         let mine = myEntries
             .filter { ($0.visibility ?? .privateOnly) == .publicAll }
-            .map { snapshot(of: $0, categories: categories) }
+            .map { snapshot(of: $0, categories: categories, mediaAssets: mediaAssets) }
         let others = mockPublicEntries.filter { !blockedUserIds.contains($0.authorId) }
         return (mine + others).sorted { $0.date > $1.date }
     }
@@ -53,8 +53,13 @@ final class SocialRepository: ObservableObject {
         publicProfiles.first { $0.userId == userId }
     }
 
-    private func snapshot(of entry: Entry, categories: [EntryCategory]) -> SocialEntry {
+    private func snapshot(of entry: Entry, categories: [EntryCategory], mediaAssets: [MediaAsset]) -> SocialEntry {
         let category = categories.first { $0.id == entry.categoryId }
+        let coverAsset = entry.coverAssetId.flatMap { coverId in
+            mediaAssets.first { $0.id == coverId }
+        } ?? entry.assetIds.compactMap { assetId in
+            mediaAssets.first { $0.id == assetId }
+        }.first
         return SocialEntry(
             id: entry.id,
             authorId: myUserId,
@@ -65,7 +70,8 @@ final class SocialRepository: ObservableObject {
             bodyPreview: String(entry.body.prefix(80)),
             rating: entry.rating,
             isWishlist: entry.isWishlist,
-            visibility: entry.visibility ?? .privateOnly
+            visibility: entry.visibility ?? .privateOnly,
+            coverAsset: coverAsset
         )
     }
 
@@ -268,7 +274,8 @@ final class SocialRepository: ObservableObject {
                 bodyPreview: entry.body,
                 rating: entry.rating,
                 isWishlist: false,
-                visibility: .publicAll
+                visibility: .publicAll,
+                coverAsset: nil
             )
         }
     }

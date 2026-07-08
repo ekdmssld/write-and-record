@@ -12,7 +12,8 @@ struct SocialAllTabView: View {
         let users = socialRepository.visiblePublicProfiles()
         let feed = socialRepository.publicFeed(
             myEntries: entryRepository.activeEntries,
-            categories: categoryRepository.categories
+            categories: categoryRepository.categories,
+            mediaAssets: entryRepository.mediaAssets
         )
 
         ScrollView {
@@ -210,6 +211,8 @@ struct SocialEntryCard: View {
                 }
             }
 
+            socialPhotoPreview
+
             HStack(spacing: 6) {
                 Circle()
                     .fill(AppColors.category(entry.categoryColorHex))
@@ -241,5 +244,31 @@ struct SocialEntryCard: View {
             RoundedRectangle(cornerRadius: AppLayout.cardRadius)
                 .stroke(AppColors.line, lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private var socialPhotoPreview: some View {
+        if let coverAsset = entry.coverAsset {
+            AssetThumbnailView(asset: coverAsset, placeholderColorHex: entry.categoryColorHex)
+                .frame(height: 176)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius - 4))
+        } else {
+            ZStack(alignment: .bottomLeading) {
+                AppColors.category(entry.categoryColorHex)
+                    .opacity(0.16)
+                Image(systemName: entry.isWishlist ? "bookmark.fill" : "photo")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(AppColors.category(entry.categoryColorHex))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text("사진 기록")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textMuted)
+                    .padding(AppLayout.smallGap)
+            }
+            .frame(height: 132)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius - 4))
+        }
     }
 }

@@ -94,6 +94,11 @@ struct SettingsView: View {
 
     private var preferencesSection: some View {
         Section("설정") {
+            NavigationLink {
+                CategoryOrderView()
+            } label: {
+                Label("카테고리 순서 변경", systemImage: "line.3.horizontal")
+            }
             Toggle("친구에게 기록 공유 허용", isOn: profileBinding(\.friendShareEnabled))
             Toggle("기록 알림", isOn: profileBinding(\.notificationEnabled))
         }

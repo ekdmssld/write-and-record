@@ -5,10 +5,15 @@ import UIKit
 enum CardRenderService {
     @MainActor
     static func renderImage(template: RecordCardTemplate, context: RecordCardContext) -> UIImage? {
-        let view = RecordCardView(template: template, context: context)
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 3.0 // 360x450 * 3 = 1080x1350
-        renderer.proposedSize = ProposedViewSize(RecordCardView.baseSize)
+        render(RecordCardView(template: template, context: context), baseSize: RecordCardView.baseSize)
+    }
+
+    /// 임의의 SwiftUI 뷰를 카드 이미지로 렌더링한다 (월간 캘린더 등).
+    @MainActor
+    static func render<Content: View>(_ content: Content, baseSize: CGSize, scale: CGFloat = 3.0) -> UIImage? {
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = scale
+        renderer.proposedSize = ProposedViewSize(baseSize)
         return renderer.uiImage
     }
 

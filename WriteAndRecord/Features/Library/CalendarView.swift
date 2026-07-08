@@ -11,6 +11,7 @@ struct CalendarView: View {
 
     @State private var displayedMonth = Date()
     @State private var daySheet: DaySheetItem?
+    @State private var showMonthlyExport = false
 
     private var calendar: Calendar { .current }
 
@@ -49,20 +50,27 @@ struct CalendarView: View {
             .presentationDetents([.fraction(0.32), .medium])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showMonthlyExport) {
+            MonthlyCalendarExportView(month: displayedMonth)
+        }
     }
 
     private var monthHeader: some View {
-        HStack {
-            IconButton(systemName: "chevron.left", accessibilityLabel: "이전 달") {
-                withAnimation { moveMonth(-1) }
-            }
-            Spacer()
+        ZStack {
             Text(DateUtils.monthTitle(displayedMonth))
                 .font(AppTypography.headline)
                 .foregroundStyle(AppColors.text)
-            Spacer()
-            IconButton(systemName: "chevron.right", accessibilityLabel: "다음 달") {
-                withAnimation { moveMonth(1) }
+            HStack(spacing: 0) {
+                IconButton(systemName: "chevron.left", accessibilityLabel: "이전 달") {
+                    withAnimation { moveMonth(-1) }
+                }
+                Spacer()
+                IconButton(systemName: "square.and.arrow.up", accessibilityLabel: "이 달을 이미지로 내보내기") {
+                    showMonthlyExport = true
+                }
+                IconButton(systemName: "chevron.right", accessibilityLabel: "다음 달") {
+                    withAnimation { moveMonth(1) }
+                }
             }
         }
     }

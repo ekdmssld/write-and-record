@@ -299,7 +299,7 @@ struct EntryEditorView: View {
     }
 
     private var additionalSections: some View {
-        VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
+        VStack(alignment: .leading, spacing: AppLayout.smallGap) {
             Text("추가 섹션")
                 .font(AppTypography.headline)
                 .foregroundStyle(AppColors.text)
@@ -313,7 +313,7 @@ struct EntryEditorView: View {
 
             if let activeSection {
                 sectionContent(activeSection)
-                    .padding(AppLayout.mediumGap)
+                    .padding(AppLayout.smallGap)
                     .background(AppColors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
                     .overlay(
@@ -330,23 +330,31 @@ struct EntryEditorView: View {
         let summary = sectionSummary(section)
         return Button {
             withAnimation(.easeInOut(duration: 0.2)) {
-                activeSection = isActive ? nil : section
+                if isActive {
+                    activeSection = nil
+                } else {
+                    prepareSectionForEditing(section)
+                    activeSection = section
+                }
             }
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: summary == nil ? 2 : 3) {
                 Image(systemName: section.systemImage)
-                    .font(.system(size: 16))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(isActive ? AppColors.primary : AppColors.textMuted)
                 Text(section.title)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.text)
-                Text(summary ?? " ")
-                    .font(.system(size: 10))
-                    .foregroundStyle(AppColors.primary)
-                    .lineLimit(1)
+                if let summary {
+                    Text(summary)
+                        .font(.system(size: 10))
+                        .foregroundStyle(AppColors.primary)
+                        .lineLimit(1)
+                }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, AppLayout.smallGap)
+            .frame(minHeight: summary == nil ? 46 : 58)
+            .padding(.vertical, summary == nil ? 4 : 6)
             .background(isActive ? AppColors.primary.opacity(0.10) : AppColors.surface)
             .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
             .overlay(
@@ -359,12 +367,26 @@ struct EntryEditorView: View {
 
     private func sectionSummary(_ section: EditorSection) -> String? {
         switch section {
-        case .pros: return viewModel.entry.pros.isEmpty ? nil : "\(viewModel.entry.pros.count)개"
-        case .cons: return viewModel.entry.cons.isEmpty ? nil : "\(viewModel.entry.cons.count)개"
-        case .tips: return viewModel.entry.tips.isEmpty ? nil : "\(viewModel.entry.tips.count)개"
+        case .pros, .cons, .tips:
+            return nil
         case .count: return viewModel.entry.count.map { "\($0)회" }
         case .place: return viewModel.entry.place?.name
-        case .links: return viewModel.entry.links.isEmpty ? nil : "\(viewModel.entry.links.count)개"
+        case .links:
+            let filledLinkCount = viewModel.entry.links.filter { !$0.url.trimmingCharacters(in: .whitespaces).isEmpty }.count
+            return filledLinkCount == 0 ? nil : "\(filledLinkCount)개"
+        }
+    }
+
+    private func prepareSectionForEditing(_ section: EditorSection) {
+        switch section {
+        case .pros:
+            if viewModel.entry.pros.isEmpty { viewModel.entry.pros.append("") }
+        case .cons:
+            if viewModel.entry.cons.isEmpty { viewModel.entry.cons.append("") }
+        case .tips:
+            if viewModel.entry.tips.isEmpty { viewModel.entry.tips.append("") }
+        default:
+            break
         }
     }
 
@@ -523,7 +545,6 @@ struct EntryEditorView: View {
 }
 
 /// 장점/단점/팁 문자열 리스트 편집기 (각 항목 최대 120자).
-/// ExpandableSection 안에서 쓰는 내용부 — 입력칸은 글 길이에 맞게 자란다.
 struct StringListEditor: View {
     let title: String
     @Binding var items: [String]
@@ -544,7 +565,11 @@ struct StringListEditor: View {
                     ), lineRange: 1...4)
                     Button {
                         if index < items.count {
-                            items.remove(at: index)
+                            if items.count == 1 {
+                                items[index] = ""
+                            } else {
+                                items.remove(at: index)
+                            }
                             onChanged()
                         }
                     } label: {
@@ -555,15 +580,11 @@ struct StringListEditor: View {
                     .accessibilityLabel("\(title) 항목 삭제")
                 }
             }
-            Button {
+        }
+        .onAppear {
+            if items.isEmpty {
                 items.append("")
-                onChanged()
-            } label: {
-                Label("\(title) 추가", systemImage: "plus.circle")
-                    .font(AppTypography.callout)
-                    .foregroundStyle(AppColors.primary)
             }
-            .accessibilityLabel("\(title) 항목 추가")
         }
     }
 }

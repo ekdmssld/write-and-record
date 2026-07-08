@@ -191,17 +191,19 @@ struct CalendarView: View {
 
     /// 사진이 없는 날: 숫자 + 카테고리 점. 오늘은 + 버튼 표시.
     private func numberCell(_ day: Date, dotColors: [String], isToday: Bool, showPlus: Bool) -> some View {
-        VStack(spacing: 4) {
+        ZStack(alignment: .topLeading) {
             Text("\(calendar.component(.day, from: day))")
                 .font(AppTypography.callout)
                 .foregroundStyle(AppColors.text)
+
             if showPlus {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppColors.primaryText)
                     .frame(width: 26, height: 26)
                     .background(Circle().fill(AppColors.primary))
-            } else {
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            } else if !dotColors.isEmpty {
                 HStack(spacing: 3) {
                     ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in
                         Circle()
@@ -209,10 +211,12 @@ struct CalendarView: View {
                             .frame(width: 5, height: 5)
                     }
                 }
-                .frame(height: 6)
+                .padding(6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(5)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .stroke(isToday ? AppColors.primary : .clear, lineWidth: 1.5)

@@ -61,18 +61,19 @@
 
 ### P1 (실사용 안정화)
 
-- [ ] 알림 실제 구현: daily reminder 시간 설정 + local notification 스케줄 (docs/05 13장). 현재는 온보딩 설정값만 저장됨.
-- [ ] JSON import/restore: export 파일을 다시 불러오는 복원 기능 (docs/07). 기기 교체/재설치 대비.
-- [ ] draft 복원 시나리오 QA: 앱 강제 종료 후 재실행 테스트 (docs/08 체크리스트).
-- [ ] 위시리스트 분류 (docs/12 J): 보고 싶은/읽고 싶은/가고 싶은 등 wishlistType.
+- [x] 알림 실제 구현: daily reminder 시간 설정 + local notification 스케줄 — `feat/daily-reminder`.
+- [x] JSON import/restore — `feat/data-import`.
+- [ ] draft 복원 시나리오 QA: 앱 강제 종료 후 재실행 테스트 (docs/08 체크리스트). 실기기에서 수동 확인 필요.
+- [x] 위시리스트 분류 (docs/12 J) — `feat/wishlist-types` (보고/읽고/가고/먹고/사고/하고 싶은).
+- [x] 스와이프 뒤로가기 전 화면 적용 — `feat/swipe-back-gesture`.
 
 ### P2 (표현/편의)
 
-- [ ] 인용구(quote) 저장 강화 + 인용구 위젯 (docs/12 E, WidgetKit).
-- [ ] 내 오늘 기록 위젯 (docs/12 D).
-- [ ] 앱 안 정보 검색 (docs/12 A): 영화/책/음악 API 선정 필요 (TMDB, 알라딘/카카오책, iTunes Search 등 — 비용/약관 확인).
-- [ ] 장소 지도 보기 (docs/12 I): MapKit, 내 기록만.
-- [ ] iPad layout 대응 (docs/12 M).
+- [x] 인용구(quote) 저장 강화 + 인용구 컬렉션 — `feat/quote-collection` (책 인용문/가사/기억나는 대사 → 인용구 모아보기).
+- [ ] 인용구 위젯 / 내 오늘 기록 위젯 (docs/12 D·E): **WidgetKit extension 타깃 + App Group 서명 설정이 필요해 Xcode GUI에서 생성 권장.** 데이터 소스(quoteEntries)는 준비됨.
+- [x] 앱 안 정보 검색 (docs/12 A) — `feat/info-search`. 키가 필요 없는 iTunes Search API로 영화/책/음악. 한국 도서 커버리지가 부족하면 알라딘/카카오책 API로 교체 검토.
+- [x] 장소 지도 보기 (docs/12 I) — 직접 구현 완료 (codex/place-search-selection).
+- [ ] iPad layout 대응 (docs/12 M): 실기기/시뮬레이터 검증 없이 진행 시 회귀 위험이 있어 Xcode 확보 후 진행.
 - [ ] 카카오톡 전용 초대 버튼: KakaoTalk SDK + 앱 키 필요. 현재는 시스템 공유 시트로 카카오톡 선택 가능. universal link 도메인도 함께 필요.
 - [ ] 초대 링크 실동작: universal link 도메인 + 초대 수락 화면 (현재 URL은 placeholder).
 
@@ -86,7 +87,7 @@
 
 ### 출시 준비 (docs/06)
 
-- [ ] 앱 아이콘 디자인 (현재 빈 placeholder).
+- [x] 앱 아이콘: 세이지·린넨 팔레트의 기록 카드 아이콘 생성 — `feat/app-icon`. (마음에 안 들면 교체: `Assets.xcassets/AppIcon.appiconset/icon-1024.png`)
 - [ ] TestFlight 전환 시: Apple Developer Program 가입, App Store Connect 레코드, 개인정보 영양성분표 초안.
 - [ ] 개인정보 처리방침 URL (소셜 공개 데이터 설명 포함 — docs/10 2장 release gate).
 - [ ] crash reporting hook (BetaRelease, FeatureFlags.enableCrashReporting 게이트 이미 존재).

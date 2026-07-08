@@ -14,6 +14,7 @@ struct EntryEditorView: View {
     @State private var showSaveFailedAlert = false
     @State private var showCategoryChange = false
     @State private var showVisibilitySheet = false
+    @State private var showInfoSearch = false
     @State private var showPlaceSearch = false
     @State private var toastMessage: String?
     /// 현재 펼쳐진 추가 섹션 (한 번에 하나).
@@ -34,6 +35,7 @@ struct EntryEditorView: View {
             VStack(alignment: .leading, spacing: AppLayout.largeGap) {
                 photoStrip
                 titleSection
+                infoSearchRow
                 dateRow
                 ratingWishRow
                 wishlistTypeRow
@@ -600,6 +602,58 @@ struct EntryEditorView: View {
                     .foregroundStyle(AppColors.primary)
             }
         }
+    }
+
+    /// 영화/책/음악 카테고리에서 검색으로 제목/상세를 채운다 (docs/12 A).
+    @ViewBuilder
+    private var infoSearchRow: some View {
+        if let kind = ExternalSearchKind.from(mainType: category?.mainType ?? .custom) {
+            Button {
+                showInfoSearch = true
+            } label: {
+                HStack(spacing: AppLayout.smallGap) {
+                    Image(systemName: "magnifyingglass.circle.fill")
+                        .foregroundStyle(AppColors.primary)
+                    Text("\(kind.displayName) 정보 검색으로 채우기")
+                        .font(AppTypography.callout)
+                        .foregroundStyle(AppColors.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppColors.textMuted)
+                }
+                .padding(AppLayout.mediumGap)
+                .background(AppColors.primary.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+            }
+            .accessibilityLabel("\(kind.displayName) 정보 검색")
+            .sheet(isPresented: $showInfoSearch) {
+                InfoSearchSheet(kind: kind) { result in
+                    applySearchResult(result)
+                }
+            }
+        }
+    }
+
+    private func applySearchResult(_ result: ExternalSearchResult) {
+        if viewModel.entry.title.trimmingCharacters(in: .whitespaces).isEmpty {
+            viewModel.entry.title = result.title
+        }
+        switch result.kind {
+        case .movie:
+            viewModel.entry.metadata["originalTitle"] = result.title
+            viewModel.entry.metadata["director"] = result.creator
+        case .book:
+            viewModel.entry.metadata["author"] = result.creator
+        case .music:
+            viewModel.entry.metadata["track"] = result.title
+            viewModel.entry.metadata["artist"] = result.creator
+            if let album = result.collection {
+                viewModel.entry.metadata["album"] = album
+            }
+        }
+        viewModel.noteChanged()
+        toastMessage = "'\(result.title)' 정보를 채웠어요."
     }
 
     @ViewBuilder

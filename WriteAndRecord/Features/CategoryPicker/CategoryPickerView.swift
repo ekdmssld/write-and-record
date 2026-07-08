@@ -82,21 +82,14 @@ struct CategoryPickerView: View {
         }
     }
 
-    /// 하단 고정 CTA: 선택한 카테고리로 기록 시작.
+    /// 하단 고정 CTA: 선택한 카테고리로 기록 시작. 선택 상태는 chip의 선택 링으로만 표시한다.
     private var recordBottomBar: some View {
-        VStack(spacing: AppLayout.smallGap) {
+        PrimaryButton(
+            title: selectedCategory.map { "\($0.name)(으)로 기록하기" } ?? "기록하기",
+            isEnabled: selectedCategory != nil
+        ) {
             if let selectedCategory {
-                HStack(spacing: 6) {
-                    Text("선택한 카테고리:")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textMuted)
-                    CategoryChip(category: selectedCategory, isSelected: true)
-                }
-            }
-            PrimaryButton(title: "기록하기", isEnabled: selectedCategory != nil) {
-                if let selectedCategory {
-                    openEditor(with: selectedCategory)
-                }
+                openEditor(with: selectedCategory)
             }
         }
         .padding(.horizontal, AppLayout.horizontalPadding)

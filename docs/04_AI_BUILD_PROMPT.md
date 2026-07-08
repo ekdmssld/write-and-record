@@ -9,6 +9,8 @@
 - `docs/07_CORE_STRUCTURE_DATA_PRIVACY_BACKUP.md`
 - `docs/08_QA_BETA_TEST_PLAN.md`
 - `docs/09_VISUAL_DIRECTION_AND_UI_CONCEPT.md`
+- `docs/10_SOCIAL_FEATURE_SPEC.md`
+- `docs/11_SOCIAL_UX_SPEC.md`
 
 ## 역할
 
@@ -19,6 +21,7 @@
 - 캘린더 중심의 기록 루프가 카드/소셜/AI보다 먼저다.
 - 데이터 유실 방지와 JSON export는 MVP의 일부다.
 - 화면은 "조용히 쌓이는 개인 블로그"처럼 느껴져야 하며, 한 화면의 primary CTA는 하나만 둔다.
+- 소셜 기능을 구현할 때는 `전체 / 친구들 / 추가` 상단 탭과 `private / friends / public` 공개 범위를 지킨다.
 
 ## 구현 지시
 

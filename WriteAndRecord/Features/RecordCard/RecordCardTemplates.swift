@@ -62,18 +62,59 @@ struct RecordCardView: View {
 
     // MARK: - Templates
 
+    /// 사진 전체 배경 + 큰 날짜 오버레이 에디토리얼 스타일.
     private var minimalPhoto: some View {
-        ZStack(alignment: .bottomLeading) {
+        let calendar = Calendar.current
+        let day = calendar.component(.day, from: context.entry.date)
+        let daysInMonth = calendar.range(of: .day, in: .month, for: context.entry.date)?.count ?? 30
+        let monthFormatter = DateFormatter()
+        monthFormatter.locale = Locale(identifier: "en_US")
+        monthFormatter.dateFormat = "MMM"
+        let monthShort = monthFormatter.string(from: context.entry.date).uppercased()
+
+        return ZStack {
             photoOrFallback
-            LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .center, endPoint: .bottom)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(dateText) · \(context.categoryName)")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.85))
-                Text(context.entry.title)
-                    .font(.system(size: 24, weight: .semibold))
+            LinearGradient(
+                colors: [.black.opacity(0.35), .clear, .black.opacity(0.35)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            VStack {
+                // 좌상단 큰 날짜
+                HStack {
+                    VStack(alignment: .leading, spacing: -4) {
+                        Text("\(day)")
+                            .font(.system(size: 44, weight: .semibold))
+                        Text(monthShort)
+                            .font(.system(size: 15, weight: .medium))
+                            .tracking(2)
+                    }
                     .foregroundStyle(.white)
-                    .lineLimit(2)
+                    .shadow(color: .black.opacity(0.3), radius: 2)
+                    Spacer()
+                }
+                Spacer()
+                // 좌하단 제목 + 진행 표기
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(context.entry.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(day)/\(daysInMonth)")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.9))
+                            Rectangle()
+                                .fill(.white.opacity(0.85))
+                                .frame(width: 44, height: 1.5)
+                        }
+                    }
+                    Spacer()
+                    Circle()
+                        .fill(categoryColor)
+                        .frame(width: 10, height: 10)
+                }
             }
             .padding(20)
         }
@@ -214,81 +255,86 @@ struct RecordCardView: View {
         }
     }
 
-    /// 한 날짜의 사진들을 연속 콜라주로 담는 카드.
+    /// 한 날짜의 사진들을 폴라로이드 스택으로 담는 카드.
+    /// 사진 카드가 겹치며 펼쳐지고, 넘치는 장수는 "+N" 카드로 표시한다.
     private var dayCollage: some View {
-        let images = Array(context.dayImages.prefix(9))
-        let titles = Array(context.dayTitles.prefix(3))
+        let allImages = context.dayImages
+        let shown = Array(allImages.prefix(3))
+        let overflow = allImages.count - shown.count
+        let rotations: [Double] = [-7, 3, -2]
+        let title = context.dayTitles.first ?? context.entry.title
 
-        return VStack(spacing: 0) {
-            // header
-            HStack(alignment: .firstTextBaseline) {
-                Text(dateText)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(AppColors.text)
+        return ZStack {
+            AppColors.bg
+            VStack(spacing: 24) {
                 Spacer()
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(categoryColor)
-                        .frame(width: 7, height: 7)
-                    Text(images.count > 1 ? "\(images.count)장의 순간" : context.categoryName)
-                        .font(.system(size: 11))
-                        .foregroundStyle(AppColors.textMuted)
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
 
-            // photo collage
-            collageGrid(images)
-                .frame(maxHeight: .infinity)
-                .clipped()
-
-            // footer: 그날 기록 제목들
-            VStack(alignment: .leading, spacing: 3) {
-                ForEach(Array(titles.enumerated()), id: \.offset) { _, title in
-                    Text(title)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AppColors.text)
-                        .lineLimit(1)
-                }
-                if context.dayTitles.count > titles.count {
-                    Text("외 \(context.dayTitles.count - titles.count)개의 기록")
-                        .font(.system(size: 11))
-                        .foregroundStyle(AppColors.textMuted)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-        }
-        .background(AppColors.surface)
-    }
-
-    @ViewBuilder
-    private func collageGrid(_ images: [UIImage]) -> some View {
-        if images.isEmpty {
-            photoOrFallback
-        } else {
-            let columnsCount = images.count <= 1 ? 1 : (images.count <= 4 ? 2 : 3)
-            let rows: [[UIImage]] = stride(from: 0, to: images.count, by: columnsCount).map {
-                Array(images[$0..<min($0 + columnsCount, images.count)])
-            }
-            VStack(spacing: 2) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                    HStack(spacing: 2) {
-                        ForEach(Array(row.enumerated()), id: \.offset) { _, image in
-                            Color.clear
-                                .overlay(
+                if shown.isEmpty {
+                    polaroidCard { AnyView(photoOrFallback) }
+                } else {
+                    HStack(spacing: -34) {
+                        ForEach(Array(shown.enumerated()), id: \.offset) { index, image in
+                            polaroidCard {
+                                AnyView(
                                     Image(uiImage: image)
                                         .resizable()
                                         .scaledToFill()
                                 )
-                                .clipped()
+                            }
+                            .rotationEffect(.degrees(rotations[index % rotations.count]))
+                            .zIndex(Double(index))
+                        }
+                        if overflow > 0 {
+                            polaroidCard {
+                                AnyView(
+                                    ZStack {
+                                        AppColors.surfaceAlt
+                                        Text("+\(overflow)")
+                                            .font(.system(size: 24, weight: .semibold))
+                                            .foregroundStyle(AppColors.text)
+                                    }
+                                )
+                            }
+                            .rotationEffect(.degrees(6))
+                            .zIndex(Double(shown.count))
                         }
                     }
+                    .padding(.horizontal, 12)
                 }
+
+                VStack(spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 21, weight: .semibold))
+                        .foregroundStyle(AppColors.text)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                    Text(dateText)
+                        .font(.system(size: 13))
+                        .foregroundStyle(AppColors.textMuted)
+                    if context.dayTitles.count > 1 {
+                        Text("외 \(context.dayTitles.count - 1)개의 기록")
+                            .font(.system(size: 11))
+                            .foregroundStyle(AppColors.textMuted)
+                    }
+                }
+                .padding(.horizontal, 24)
+
+                Spacer()
             }
         }
+    }
+
+    /// 흰 테두리 폴라로이드 프레임.
+    private func polaroidCard(content: () -> AnyView) -> some View {
+        content()
+            .frame(width: 116, height: 156)
+            .clipped()
+            .padding(.top, 7)
+            .padding(.horizontal, 7)
+            .padding(.bottom, 22)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .shadow(color: .black.opacity(0.14), radius: 8, y: 4)
     }
 
     private var textDiary: some View {

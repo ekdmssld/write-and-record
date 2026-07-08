@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var exportURL: URL?
     @State private var showSignOutDialog = false
     @State private var showFeedbackForm = false
+    @State private var showImportPicker = false
+    @State private var pendingImport: ExportService.ExportBundle?
     @State private var toastMessage: String?
 
     var body: some View {
@@ -160,11 +162,61 @@ struct SettingsView: View {
             } label: {
                 Label("데이터 내보내기 (JSON)", systemImage: "square.and.arrow.up")
             }
+            Button {
+                showImportPicker = true
+            } label: {
+                Label("데이터 가져오기 (JSON)", systemImage: "square.and.arrow.down")
+            }
         } header: {
             Text("데이터")
         } footer: {
-            Text("앱을 삭제하면 기록이 사라질 수 있어요. 주기적으로 내보내기로 백업해 주세요.")
+            Text("앱을 삭제하면 기록이 사라질 수 있어요. 주기적으로 내보내기로 백업해 주세요. 가져오기는 현재 기록/카테고리를 백업 내용으로 교체해요.")
         }
+        .fileImporter(isPresented: $showImportPicker, allowedContentTypes: [.json]) { result in
+            handleImportSelection(result)
+        }
+        .alert("백업을 가져올까요?", isPresented: Binding(
+            get: { pendingImport != nil },
+            set: { if !$0 { pendingImport = nil } }
+        )) {
+            Button("가져오기", role: .destructive) {
+                applyImport()
+            }
+            Button("취소", role: .cancel) {
+                pendingImport = nil
+            }
+        } message: {
+            if let bundle = pendingImport {
+                Text("기록 \(bundle.entries.filter { $0.deletedAt == nil }.count)개, 카테고리 \(bundle.categories.count)개를 가져와요.\n현재 기기의 기록/카테고리는 이 내용으로 교체돼요.")
+            }
+        }
+    }
+
+    private func handleImportSelection(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            do {
+                pendingImport = try ExportService.readBundle(from: url)
+            } catch {
+                toastMessage = error.localizedDescription
+            }
+        case .failure:
+            toastMessage = "파일을 선택하지 못했어요."
+        }
+    }
+
+    private func applyImport() {
+        guard let bundle = pendingImport else { return }
+        // 카테고리를 먼저 복원해야 기록의 카테고리 참조가 살아난다.
+        categoryRepository.restore(categories: bundle.categories)
+        let success = entryRepository.restore(
+            entries: bundle.entries,
+            mediaAssets: bundle.mediaAssets,
+            recordCards: bundle.recordCards,
+            collections: bundle.collections
+        )
+        pendingImport = nil
+        toastMessage = success ? "백업을 가져왔어요." : "가져오기에 실패했어요. 기존 데이터는 유지돼요."
     }
 
     private var feedbackSection: some View {

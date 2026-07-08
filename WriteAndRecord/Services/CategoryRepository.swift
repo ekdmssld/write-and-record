@@ -144,4 +144,10 @@ final class CategoryRepository: ObservableObject {
         categories = CategorySeed.defaultCategories()
         PersistenceStore.save(categories, to: categoriesFile)
     }
+
+    /// 백업에서 복원. 백업에 카테고리가 없으면 기본값으로 되돌린다.
+    func restore(categories newCategories: [EntryCategory]) {
+        categories = newCategories.isEmpty ? CategorySeed.defaultCategories() : newCategories
+        PersistenceStore.save(categories, to: categoriesFile)
+    }
 }

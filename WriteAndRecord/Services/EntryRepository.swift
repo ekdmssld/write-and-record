@@ -176,6 +176,24 @@ final class EntryRepository: ObservableObject {
         return entriesByDateDescending().filter { $0.date >= cutoff }
     }
 
+    /// 백업에서 복원: 기록 관련 데이터를 백업 내용으로 교체한다 (docs/13 P1).
+    func restore(
+        entries newEntries: [Entry],
+        mediaAssets newAssets: [MediaAsset],
+        recordCards newCards: [RecordCard],
+        collections newCollections: [EntryCollection]
+    ) -> Bool {
+        guard PersistenceStore.save(newEntries, to: entriesFile) else { return false }
+        PersistenceStore.save(newAssets, to: assetsFile)
+        PersistenceStore.save(newCards, to: cardsFile)
+        PersistenceStore.save(newCollections, to: collectionsFile)
+        entries = newEntries
+        mediaAssets = newAssets
+        recordCards = newCards
+        collections = newCollections
+        return true
+    }
+
     // MARK: - Debug helpers
 
     func resetAllData() {

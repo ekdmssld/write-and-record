@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 라이브러리 기본 홈: 화면 전체를 채우는 월 캘린더.
+/// 라이브러리 기본 홈: 사진 썸네일이 날짜 셀을 채우는 월 캘린더.
 /// - 오늘 칸에는 + 버튼이 표시된다 (기록이 없을 때).
 /// - 기록 없는 날짜 탭 -> 카테고리 선택으로 바로 이동.
 /// - 기록 있는 날짜 탭 -> 하단에서 30% 시트가 올라와 그날의 기록을 보여준다.
@@ -14,9 +14,9 @@ struct CalendarView: View {
     @State private var showMonthlyExport = false
 
     private var calendar: Calendar { .current }
-    private let weekSpacing: CGFloat = 4
-    private let daySpacing: CGFloat = 3
-    private let photoTileMaxSide: CGFloat = 42
+    private let horizontalPadding: CGFloat = 12
+    private let weekSpacing: CGFloat = 3
+    private let daySpacing: CGFloat = 2
 
     struct DaySheetItem: Identifiable {
         let date: Date
@@ -31,7 +31,7 @@ struct CalendarView: View {
                 .frame(height: 22)
             monthGrid
         }
-        .padding(.horizontal, AppLayout.horizontalPadding)
+        .padding(.horizontal, horizontalPadding)
         .padding(.top, AppLayout.smallGap)
         .padding(.bottom, AppLayout.smallGap)
         .sheet(item: $daySheet) { item in
@@ -89,12 +89,13 @@ struct CalendarView: View {
         }
     }
 
-    /// 남은 화면 전체를 채우는 날짜 그리드. 주 행이 균등하게 늘어난다.
+    /// 남은 화면을 크게 채우는 7열 날짜 그리드. 사진이 있는 날짜는 셀 전체를 썸네일로 채운다.
     private var monthGrid: some View {
         let weeks = DateUtils.monthGrid(for: displayedMonth)
         let entriesByDay = entryRepository.entryCountsByDay(in: displayedMonth)
 
         return GeometryReader { proxy in
+            let cellWidth = (proxy.size.width - daySpacing * 6) / 7
             let rowCount = max(weeks.count, 1)
             let availableHeight = max(proxy.size.height - weekSpacing * CGFloat(rowCount - 1), 0)
             let rowHeight = availableHeight / CGFloat(rowCount)
@@ -104,27 +105,24 @@ struct CalendarView: View {
                     HStack(spacing: daySpacing) {
                         ForEach(Array(week.enumerated()), id: \.offset) { _, day in
                             if let day {
-                                dayCell(
-                                    day,
-                                    entries: entriesByDay[calendar.component(.day, from: day)] ?? [],
-                                    rowHeight: rowHeight
-                                )
+                                dayCell(day, entries: entriesByDay[calendar.component(.day, from: day)] ?? [])
+                                    .frame(width: cellWidth, height: rowHeight)
                             } else {
                                 Color.clear
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .frame(width: cellWidth, height: rowHeight)
                             }
                         }
                     }
-                    .frame(height: rowHeight)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(maxHeight: .infinity)
     }
 
     // MARK: - Day cell
 
-    private func dayCell(_ day: Date, entries: [Entry], rowHeight: CGFloat) -> some View {
+    private func dayCell(_ day: Date, entries: [Entry]) -> some View {
         let isToday = calendar.isDateInToday(day)
         let dotColors: [String] = Array(
             entries.map { categoryRepository.colorHex(forEntry: $0) }
@@ -146,22 +144,21 @@ struct CalendarView: View {
         } label: {
             Group {
                 if let coverAsset {
-                    photoCell(day, coverAsset: coverAsset, dotColors: dotColors, isToday: isToday, rowHeight: rowHeight)
+                    photoCell(day, coverAsset: coverAsset, dotColors: dotColors, isToday: isToday)
                 } else {
                     numberCell(day, dotColors: dotColors, isToday: isToday, showPlus: isToday)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .buttonStyle(.plain)
         .contentShape(Rectangle())
         .accessibilityLabel(dayCellLabel(day, entryCount: entries.count, isToday: isToday))
     }
 
-    /// 사진이 있는 날: 균등한 날짜 grid를 깨지 않도록 고정 크기 썸네일만 표시한다.
-    private func photoCell(_ day: Date, coverAsset: MediaAsset, dotColors: [String], isToday: Bool, rowHeight: CGFloat) -> some View {
-        let tileSide = min(photoTileMaxSide, max(28, rowHeight - 10))
-
-        return ZStack(alignment: .topLeading) {
+    /// 사진이 있는 날: 날짜 셀 전체가 사진 타일이 된다.
+    private func photoCell(_ day: Date, coverAsset: MediaAsset, dotColors: [String], isToday: Bool) -> some View {
+        ZStack(alignment: .topLeading) {
             AssetThumbnailView(asset: coverAsset)
             LinearGradient(
                 colors: [.black.opacity(0.35), .clear],
@@ -174,7 +171,7 @@ struct CalendarView: View {
                 .shadow(color: .black.opacity(0.5), radius: 1)
                 .padding(5)
         }
-        .frame(width: tileSide, height: tileSide)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .bottomTrailing) {
             HStack(spacing: 2) {
                 ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in

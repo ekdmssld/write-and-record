@@ -85,8 +85,8 @@ struct LibraryHomeView: View {
                     .foregroundStyle(AppColors.textMuted)
             }
             Spacer()
-            IconButton(systemName: "plus", accessibilityLabel: "새 기록 추가") {
-                router.push(.categoryPicker(date: Date()))
+            IconButton(systemName: "magnifyingglass", accessibilityLabel: "기록 검색") {
+                router.push(.search)
             }
         }
         .padding(.horizontal, AppLayout.horizontalPadding)

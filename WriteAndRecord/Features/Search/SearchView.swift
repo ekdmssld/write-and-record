@@ -1,11 +1,12 @@
 import SwiftUI
 
 /// 검색/필터: 제목/본문/카테고리/장소/링크 텍스트 + 카테고리/별점/위시/사진/장소 필터.
+/// 라이브러리 우측 상단 검색 버튼에서 push되어 열린다.
 struct SearchView: View {
     @EnvironmentObject private var entryRepository: EntryRepository
     @EnvironmentObject private var categoryRepository: CategoryRepository
+    @EnvironmentObject private var router: NavigationRouter
 
-    @StateObject private var router = NavigationRouter()
     @State private var filter = EntryRepository.SearchFilter()
 
     private var results: [Entry] {
@@ -13,19 +14,15 @@ struct SearchView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $router.path) {
-            VStack(spacing: 0) {
-                searchField
-                filterBar
-                Divider().overlay(AppColors.line)
-                resultList
-            }
-            .background(AppColors.bg)
-            .navigationTitle("검색")
-            .navigationBarTitleDisplayMode(.inline)
-            .withAppRoutes()
+        VStack(spacing: 0) {
+            searchField
+            filterBar
+            Divider().overlay(AppColors.line)
+            resultList
         }
-        .environmentObject(router)
+        .background(AppColors.bg)
+        .navigationTitle("검색")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var searchField: some View {

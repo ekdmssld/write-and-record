@@ -5,6 +5,7 @@ enum AppRoute: Hashable {
     case entryEditor(date: Date, categoryId: String, entryId: String?)
     case entryDetail(entryId: String)
     case recordCardPicker(entryId: String)
+    case search
 }
 
 /// NavigationStack path 관리. 저장 후 "에디터 -> 상세로 교체" 같은 전환에 사용.
@@ -44,6 +45,8 @@ struct AppRouteDestinations: ViewModifier {
                 EntryDetailView(entryId: entryId)
             case .recordCardPicker(let entryId):
                 RecordCardPickerView(entryId: entryId)
+            case .search:
+                SearchView()
             }
         }
     }

@@ -59,13 +59,14 @@ struct ProfileTheme: Codable, Identifiable, Equatable {
     var backgroundStyle: ThemeBackgroundStyle
     var fontStyle: ThemeFontStyle
 
+    /// 부드러운 파스텔 팔레트 테마.
     static let defaultThemes: [ProfileTheme] = [
-        ProfileTheme(id: "calm-lavender", name: "라벤더", primaryColorHex: "#5B6CFF", backgroundStyle: .solid, fontStyle: .calm),
-        ProfileTheme(id: "warm-peach", name: "피치", primaryColorHex: "#F2A65A", backgroundStyle: .gradient, fontStyle: .cute),
-        ProfileTheme(id: "editorial-ink", name: "잉크", primaryColorHex: "#1F1F1F", backgroundStyle: .solid, fontStyle: .editorial),
-        ProfileTheme(id: "forest-green", name: "포레스트", primaryColorHex: "#2E8B57", backgroundStyle: .solid, fontStyle: .minimal),
-        ProfileTheme(id: "rose-pink", name: "로즈", primaryColorHex: "#FF7AA2", backgroundStyle: .gradient, fontStyle: .cute),
-        ProfileTheme(id: "sea-teal", name: "티일", primaryColorHex: "#50B9B0", backgroundStyle: .solid, fontStyle: .calm)
+        ProfileTheme(id: "high-country-rose", name: "로즈", primaryColorHex: "#A16879", backgroundStyle: .solid, fontStyle: .calm),
+        ProfileTheme(id: "pink-stock", name: "핑크 스톡", primaryColorHex: "#DEADA9", backgroundStyle: .gradient, fontStyle: .cute),
+        ProfileTheme(id: "bourguignon", name: "버건디", primaryColorHex: "#BB737E", backgroundStyle: .solid, fontStyle: .editorial),
+        ProfileTheme(id: "dried-palm", name: "팜", primaryColorHex: "#D9BE7A", backgroundStyle: .solid, fontStyle: .minimal),
+        ProfileTheme(id: "beach-dune", name: "듄", primaryColorHex: "#C5BA9A", backgroundStyle: .solid, fontStyle: .calm),
+        ProfileTheme(id: "warm-ink", name: "잉크", primaryColorHex: "#3D3330", backgroundStyle: .solid, fontStyle: .editorial)
     ]
 
     static func theme(for id: String) -> ProfileTheme {

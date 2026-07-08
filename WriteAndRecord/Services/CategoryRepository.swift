@@ -11,8 +11,25 @@ final class CategoryRepository: ObservableObject {
     }
 
     func load() {
-        if let stored = PersistenceStore.load([EntryCategory].self, from: categoriesFile), !stored.isEmpty {
+        if var stored = PersistenceStore.load([EntryCategory].self, from: categoriesFile), !stored.isEmpty {
+            // 기본 카테고리는 사용자가 색을 고르지 않으므로,
+            // 디자인 팔레트가 바뀌면 저장된 색/아이콘을 최신 기본값으로 동기화한다.
+            var changed = false
+            for index in stored.indices where stored[index].isDefault {
+                let mainType = stored[index].mainType
+                if stored[index].colorHex != mainType.defaultColorHex {
+                    stored[index].colorHex = mainType.defaultColorHex
+                    changed = true
+                }
+                if stored[index].icon != mainType.defaultIcon {
+                    stored[index].icon = mainType.defaultIcon
+                    changed = true
+                }
+            }
             categories = stored
+            if changed {
+                PersistenceStore.save(categories, to: categoriesFile)
+            }
         } else {
             // 앱 첫 실행: 기본 카테고리 seed
             categories = CategorySeed.defaultCategories()

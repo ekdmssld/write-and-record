@@ -25,17 +25,18 @@ enum CategoryMainType: String, Codable, CaseIterable {
         }
     }
 
+    /// 부드러운 파스텔 팔레트 기반 카테고리 색.
     var defaultColorHex: String {
         switch self {
-        case .daily: return "#F4A7B9"
-        case .food: return "#F2A65A"
-        case .fandom: return "#B794F4"
-        case .exercise: return "#59B88D"
-        case .movieTv: return "#6AA9FF"
-        case .book: return "#B68B5E"
-        case .music: return "#FF7AA2"
-        case .place: return "#50B9B0"
-        case .custom: return "#9A9A9A"
+        case .daily: return "#DEADA9"    // pink stock
+        case .food: return "#D9BE7A"     // palm gold
+        case .fandom: return "#BB737E"   // beef bourguignon
+        case .exercise: return "#9DB79B" // soft sage
+        case .movieTv: return "#A9B4C8"  // dusty blue
+        case .book: return "#C5BA9A"     // beach dune
+        case .music: return "#C692A9"    // soft mauve
+        case .place: return "#9FBFB2"    // eucalyptus
+        case .custom: return "#B5AB9D"   // warm gray
         }
     }
 

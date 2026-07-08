@@ -122,7 +122,7 @@ struct RecordCardView: View {
                         ForEach(1...5, id: \.self) { star in
                             Image(systemName: star <= rating ? "star.fill" : "star")
                                 .font(.system(size: 15))
-                                .foregroundStyle(Color(hex: "#F2A65A"))
+                                .foregroundStyle(AppColors.star)
                         }
                     }
                 }

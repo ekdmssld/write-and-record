@@ -55,7 +55,7 @@ struct CollectionsView: View {
     }
 
     @ViewBuilder
-    private func smartCollectionRow(icon: String, title: String, entries: [Entry], colorHex: String = "#5B6CFF") -> some View {
+    private func smartCollectionRow(icon: String, title: String, entries: [Entry], colorHex: String = "#A16879") -> some View {
         if !entries.isEmpty {
             NavigationLink {
                 CollectionEntriesView(title: title, entries: entries)

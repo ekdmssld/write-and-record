@@ -9,7 +9,7 @@ struct RatingControl: View {
             ForEach(1...5, id: \.self) { star in
                 Image(systemName: star <= (rating ?? 0) ? "star.fill" : "star")
                     .font(.system(size: 24))
-                    .foregroundStyle(star <= (rating ?? 0) ? Color(hex: "#F2A65A") : AppColors.line)
+                    .foregroundStyle(star <= (rating ?? 0) ? AppColors.star : AppColors.line)
                     .onTapGesture {
                         if rating == star {
                             rating = nil
@@ -35,7 +35,7 @@ struct RatingDisplay: View {
             ForEach(1...5, id: \.self) { star in
                 Image(systemName: star <= rating ? "star.fill" : "star")
                     .font(.system(size: 12))
-                    .foregroundStyle(star <= rating ? Color(hex: "#F2A65A") : AppColors.line)
+                    .foregroundStyle(star <= rating ? AppColors.star : AppColors.line)
             }
         }
         .accessibilityLabel("별점 \(rating)점")

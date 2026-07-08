@@ -14,18 +14,23 @@ extension Color {
     }
 }
 
-/// Design Spec 2장 색상 토큰. 라이트 모드 우선.
+/// 색상 토큰 — 부드러운 파스텔 팔레트 (docs/09 방향: 따뜻한 배경, 또렷한 액션).
+/// 기준 팔레트:
+///   Dried Palm #E2DAAC · Beach Dune #C5BA9A · Pink Stock #DEADA9
+///   Beef Bourguignon #BB737E · High Country Rose #A16879
 enum AppColors {
-    static let bg = Color(hex: "#FBFAF7")
+    static let bg = Color(hex: "#FAF6ED")          // warm paper (dried palm 톤)
     static let surface = Color(hex: "#FFFFFF")
-    static let surfaceAlt = Color(hex: "#F3F0EA")
-    static let text = Color(hex: "#1F1F1F")
-    static let textMuted = Color(hex: "#73706A")
-    static let line = Color(hex: "#E7E1D8")
-    static let primary = Color(hex: "#5B6CFF")
+    static let surfaceAlt = Color(hex: "#F2ECDC")  // dried palm light
+    static let text = Color(hex: "#3D3330")        // warm dark brown
+    static let textMuted = Color(hex: "#8F8378")
+    static let line = Color(hex: "#E6DDC9")
+    static let primary = Color(hex: "#A16879")     // high country rose
     static let primaryText = Color(hex: "#FFFFFF")
-    static let danger = Color(hex: "#D94A4A")
-    static let success = Color(hex: "#2E8B57")
+    static let danger = Color(hex: "#C9605F")
+    static let success = Color(hex: "#7A9B7E")
+    /// 별점 등 포인트 골드.
+    static let star = Color(hex: "#D2A85E")
 
     static func category(_ hexString: String) -> Color {
         Color(hex: hexString)

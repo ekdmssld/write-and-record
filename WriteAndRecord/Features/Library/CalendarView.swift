@@ -1,6 +1,8 @@
 import SwiftUI
 
 /// 라이브러리 기본 홈: 월 캘린더 + 선택 날짜의 기록 목록.
+/// 캘린더 블록(헤더+요일+그리드)이 화면의 75%를 차지하고,
+/// 사진이 있는 날짜는 셀 전체가 사진 타일로 표시된다.
 struct CalendarView: View {
     @EnvironmentObject private var entryRepository: EntryRepository
     @EnvironmentObject private var categoryRepository: CategoryRepository
@@ -12,17 +14,58 @@ struct CalendarView: View {
     private var calendar: Calendar { .current }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: AppLayout.mediumGap) {
-                monthHeader
-                weekdayRow
-                monthGrid
-                Divider().overlay(AppColors.line)
-                selectedDateSection
+        GeometryReader { geo in
+            ScrollView {
+                VStack(spacing: AppLayout.mediumGap) {
+                    calendarBlock(totalHeight: geo.size.height)
+                    Divider().overlay(AppColors.line)
+                    selectedDateSection
+                }
+                .padding(.horizontal, AppLayout.horizontalPadding)
+                .padding(.top, AppLayout.smallGap)
+                .padding(.bottom, AppLayout.largeGap)
             }
-            .padding(.horizontal, AppLayout.horizontalPadding)
-            .padding(.top, AppLayout.smallGap)
-            .padding(.bottom, AppLayout.largeGap)
+        }
+    }
+
+    // MARK: - Calendar block (화면 75%)
+
+    private func calendarBlock(totalHeight: CGFloat) -> some View {
+        let weeks = DateUtils.monthGrid(for: displayedMonth)
+        let blockHeight = totalHeight * 0.75
+        let headerHeight: CGFloat = 44
+        let weekdayHeight: CGFloat = 22
+        let sectionSpacing = AppLayout.mediumGap * 2
+        let rowSpacing: CGFloat = 4
+        let rowCount = max(weeks.count, 1)
+        let gridHeight = max(blockHeight - headerHeight - weekdayHeight - sectionSpacing, 260)
+        let cellHeight = (gridHeight - rowSpacing * CGFloat(rowCount - 1)) / CGFloat(rowCount)
+        let entriesByDay = entryRepository.entryCountsByDay(in: displayedMonth)
+
+        return VStack(spacing: AppLayout.mediumGap) {
+            monthHeader
+                .frame(height: headerHeight)
+            weekdayRow
+                .frame(height: weekdayHeight)
+            VStack(spacing: rowSpacing) {
+                ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                    HStack(spacing: 3) {
+                        ForEach(Array(week.enumerated()), id: \.offset) { _, day in
+                            if let day {
+                                dayCell(
+                                    day,
+                                    entries: entriesByDay[calendar.component(.day, from: day)] ?? [],
+                                    height: cellHeight
+                                )
+                            } else {
+                                Color.clear
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: cellHeight)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -43,7 +86,7 @@ struct CalendarView: View {
     }
 
     private var weekdayRow: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 3) {
             ForEach(DateUtils.weekdaySymbols, id: \.self) { symbol in
                 Text(symbol)
                     .font(AppTypography.caption)
@@ -53,26 +96,9 @@ struct CalendarView: View {
         }
     }
 
-    private var monthGrid: some View {
-        let weeks = DateUtils.monthGrid(for: displayedMonth)
-        let entriesByDay = entryRepository.entryCountsByDay(in: displayedMonth)
+    // MARK: - Day cell
 
-        return VStack(spacing: 4) {
-            ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
-                HStack(spacing: 0) {
-                    ForEach(Array(week.enumerated()), id: \.offset) { _, day in
-                        if let day {
-                            dayCell(day, entries: entriesByDay[calendar.component(.day, from: day)] ?? [])
-                        } else {
-                            Color.clear.frame(maxWidth: .infinity, minHeight: 52)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func dayCell(_ day: Date, entries: [Entry]) -> some View {
+    private func dayCell(_ day: Date, entries: [Entry], height: CGFloat) -> some View {
         let isSelected = calendar.isDate(day, inSameDayAs: selectedDate)
         let isToday = calendar.isDateInToday(day)
         // 카테고리 색 점 최대 3개 (Functional Spec 6장)
@@ -83,7 +109,7 @@ struct CalendarView: View {
                 }
                 .prefix(3)
         )
-        // 그날 기록 중 첫 번째 사진을 셀 배경으로 보여준다.
+        // 그날 기록 중 첫 번째 사진을 셀 전체에 보여준다.
         let coverAsset = entries.compactMap { entryRepository.coverAsset(for: $0) }.first
 
         return Button {
@@ -93,52 +119,61 @@ struct CalendarView: View {
                 router.push(.categoryPicker(date: day))
             }
         } label: {
-            VStack(spacing: 4) {
-                dayNumberView(day, coverAsset: coverAsset, isSelected: isSelected, isToday: isToday)
-                HStack(spacing: 3) {
-                    ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in
-                        Circle()
-                            .fill(AppColors.category(hex))
-                            .frame(width: 5, height: 5)
-                    }
+            Group {
+                if let coverAsset {
+                    photoCell(day, coverAsset: coverAsset, dotColors: dotColors, isSelected: isSelected, isToday: isToday)
+                } else {
+                    numberCell(day, dotColors: dotColors, isSelected: isSelected, isToday: isToday)
                 }
-                .frame(height: 6)
             }
-            .frame(maxWidth: .infinity, minHeight: 52)
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
         }
         .accessibilityLabel(dayCellLabel(day, entryCount: entries.count, isToday: isToday, isSelected: isSelected))
     }
 
-    @ViewBuilder
-    private func dayNumberView(_ day: Date, coverAsset: MediaAsset?, isSelected: Bool, isToday: Bool) -> some View {
-        let dayNumber = "\(calendar.component(.day, from: day))"
-        if let coverAsset {
-            // 사진이 있는 날: 썸네일 위에 날짜 숫자 오버레이
-            ZStack {
-                AssetThumbnailView(asset: coverAsset)
-                    .frame(width: 36, height: 36)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.black.opacity(0.28))
-                    )
-                Text(dayNumber)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.4), radius: 1)
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(
-                        isSelected ? AppColors.primary : (isToday ? AppColors.primary.opacity(0.6) : .clear),
-                        lineWidth: isSelected ? 2.5 : 1.5
-                    )
+    /// 사진이 있는 날: 셀 전체가 사진 타일.
+    private func photoCell(_ day: Date, coverAsset: MediaAsset, dotColors: [String], isSelected: Bool, isToday: Bool) -> some View {
+        ZStack(alignment: .topLeading) {
+            AssetThumbnailView(asset: coverAsset)
+            LinearGradient(
+                colors: [.black.opacity(0.35), .clear],
+                startPoint: .top,
+                endPoint: .center
             )
-        } else {
-            Text(dayNumber)
+            Text("\(calendar.component(.day, from: day))")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.5), radius: 1)
+                .padding(5)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            HStack(spacing: 2) {
+                ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in
+                    Circle()
+                        .fill(AppColors.category(hex))
+                        .frame(width: 5, height: 5)
+                }
+            }
+            .padding(4)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(
+                    isSelected ? AppColors.primary : (isToday ? AppColors.primary.opacity(0.6) : .clear),
+                    lineWidth: isSelected ? 2.5 : 1.5
+                )
+        )
+    }
+
+    /// 사진이 없는 날: 숫자 + 카테고리 점.
+    private func numberCell(_ day: Date, dotColors: [String], isSelected: Bool, isToday: Bool) -> some View {
+        VStack(spacing: 4) {
+            Text("\(calendar.component(.day, from: day))")
                 .font(AppTypography.callout)
                 .foregroundStyle(isSelected ? AppColors.primaryText : AppColors.text)
-                .frame(width: 36, height: 36)
+                .frame(width: 34, height: 34)
                 .background(
                     ZStack {
                         if isSelected {
@@ -148,7 +183,16 @@ struct CalendarView: View {
                         }
                     }
                 )
+            HStack(spacing: 3) {
+                ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in
+                    Circle()
+                        .fill(AppColors.category(hex))
+                        .frame(width: 5, height: 5)
+                }
+            }
+            .frame(height: 6)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func dayCellLabel(_ day: Date, entryCount: Int, isToday: Bool, isSelected: Bool) -> String {
@@ -158,6 +202,8 @@ struct CalendarView: View {
         if isSelected { parts.append("선택됨") }
         return parts.joined(separator: ", ")
     }
+
+    // MARK: - Selected date section
 
     private var selectedDateSection: some View {
         let entries = entryRepository.entries(on: selectedDate)

@@ -14,6 +14,8 @@ struct EntryEditorView: View {
     @State private var showSaveFailedAlert = false
     @State private var showCategoryChange = false
     @State private var toastMessage: String?
+    /// 현재 펼쳐진 추가 섹션 (한 번에 하나).
+    @State private var activeSection: EditorSection?
 
     init(date: Date, categoryId: String, editingEntryId: String?) {
         _viewModel = StateObject(wrappedValue: EntryEditorViewModel(
@@ -222,65 +224,126 @@ struct EntryEditorView: View {
         }
     }
 
+    /// 추가 섹션 종류. 3개씩 두 줄(장점/단점/팁, 횟수/장소/링크)로 배치된다.
+    enum EditorSection: String, CaseIterable, Identifiable {
+        case pros, cons, tips, count, place, links
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .pros: return "장점"
+            case .cons: return "단점"
+            case .tips: return "팁"
+            case .count: return "횟수"
+            case .place: return "장소"
+            case .links: return "링크"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .pros: return "hand.thumbsup"
+            case .cons: return "hand.thumbsdown"
+            case .tips: return "lightbulb"
+            case .count: return "number"
+            case .place: return "mappin.and.ellipse"
+            case .links: return "link"
+            }
+        }
+    }
+
     private var additionalSections: some View {
         VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
             Text("추가 섹션")
                 .font(AppTypography.headline)
                 .foregroundStyle(AppColors.text)
 
-            ExpandableSection(
-                title: "장점",
-                systemImage: "hand.thumbsup",
-                summary: viewModel.entry.pros.isEmpty ? nil : "\(viewModel.entry.pros.count)개"
-            ) {
-                StringListEditor(title: "장점", items: $viewModel.entry.pros) {
-                    viewModel.noteChanged()
+            // 장점/단점/팁 한 줄, 횟수/장소/링크 한 줄
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: AppLayout.smallGap) {
+                ForEach(EditorSection.allCases) { section in
+                    sectionChip(section)
                 }
             }
 
-            ExpandableSection(
-                title: "단점",
-                systemImage: "hand.thumbsdown",
-                summary: viewModel.entry.cons.isEmpty ? nil : "\(viewModel.entry.cons.count)개"
-            ) {
-                StringListEditor(title: "단점", items: $viewModel.entry.cons) {
-                    viewModel.noteChanged()
-                }
+            if let activeSection {
+                sectionContent(activeSection)
+                    .padding(AppLayout.mediumGap)
+                    .background(AppColors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                            .stroke(AppColors.primary.opacity(0.4), lineWidth: 1)
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
+        }
+    }
 
-            ExpandableSection(
-                title: "팁",
-                systemImage: "lightbulb",
-                summary: viewModel.entry.tips.isEmpty ? nil : "\(viewModel.entry.tips.count)개"
-            ) {
-                StringListEditor(title: "팁", items: $viewModel.entry.tips) {
-                    viewModel.noteChanged()
-                }
+    private func sectionChip(_ section: EditorSection) -> some View {
+        let isActive = activeSection == section
+        let summary = sectionSummary(section)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                activeSection = isActive ? nil : section
             }
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: section.systemImage)
+                    .font(.system(size: 16))
+                    .foregroundStyle(isActive ? AppColors.primary : AppColors.textMuted)
+                Text(section.title)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.text)
+                Text(summary ?? " ")
+                    .font(.system(size: 10))
+                    .foregroundStyle(AppColors.primary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppLayout.smallGap)
+            .background(isActive ? AppColors.primary.opacity(0.10) : AppColors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                    .stroke(isActive ? AppColors.primary : AppColors.line, lineWidth: isActive ? 1.5 : 1)
+            )
+        }
+        .accessibilityLabel("\(section.title) 섹션\(summary.map { ", \($0)" } ?? "")\(isActive ? ", 펼쳐짐" : "")")
+    }
 
-            ExpandableSection(
-                title: "횟수",
-                systemImage: "number",
-                summary: viewModel.entry.count.map { "\($0)회" }
-            ) {
-                countField
-            }
+    private func sectionSummary(_ section: EditorSection) -> String? {
+        switch section {
+        case .pros: return viewModel.entry.pros.isEmpty ? nil : "\(viewModel.entry.pros.count)개"
+        case .cons: return viewModel.entry.cons.isEmpty ? nil : "\(viewModel.entry.cons.count)개"
+        case .tips: return viewModel.entry.tips.isEmpty ? nil : "\(viewModel.entry.tips.count)개"
+        case .count: return viewModel.entry.count.map { "\($0)회" }
+        case .place: return viewModel.entry.place?.name
+        case .links: return viewModel.entry.links.isEmpty ? nil : "\(viewModel.entry.links.count)개"
+        }
+    }
 
-            ExpandableSection(
-                title: "장소",
-                systemImage: "mappin.and.ellipse",
-                summary: viewModel.entry.place?.name
-            ) {
-                placeFields
+    @ViewBuilder
+    private func sectionContent(_ section: EditorSection) -> some View {
+        switch section {
+        case .pros:
+            StringListEditor(title: "장점", items: $viewModel.entry.pros) {
+                viewModel.noteChanged()
             }
-
-            ExpandableSection(
-                title: "링크",
-                systemImage: "link",
-                summary: viewModel.entry.links.isEmpty ? nil : "\(viewModel.entry.links.count)개"
-            ) {
-                linksContent
+        case .cons:
+            StringListEditor(title: "단점", items: $viewModel.entry.cons) {
+                viewModel.noteChanged()
             }
+        case .tips:
+            StringListEditor(title: "팁", items: $viewModel.entry.tips) {
+                viewModel.noteChanged()
+            }
+        case .count:
+            countField
+        case .place:
+            placeFields
+        case .links:
+            linksContent
         }
     }
 

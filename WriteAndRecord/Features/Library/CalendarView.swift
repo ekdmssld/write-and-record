@@ -14,6 +14,9 @@ struct CalendarView: View {
     @State private var showMonthlyExport = false
 
     private var calendar: Calendar { .current }
+    private let weekSpacing: CGFloat = 4
+    private let daySpacing: CGFloat = 3
+    private let photoTileMaxSide: CGFloat = 42
 
     struct DaySheetItem: Identifiable {
         let date: Date
@@ -76,7 +79,7 @@ struct CalendarView: View {
     }
 
     private var weekdayRow: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: daySpacing) {
             ForEach(DateUtils.weekdaySymbols, id: \.self) { symbol in
                 Text(symbol)
                     .font(AppTypography.caption)
@@ -91,19 +94,29 @@ struct CalendarView: View {
         let weeks = DateUtils.monthGrid(for: displayedMonth)
         let entriesByDay = entryRepository.entryCountsByDay(in: displayedMonth)
 
-        return VStack(spacing: 4) {
-            ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
-                HStack(spacing: 3) {
-                    ForEach(Array(week.enumerated()), id: \.offset) { _, day in
-                        if let day {
-                            dayCell(day, entries: entriesByDay[calendar.component(.day, from: day)] ?? [])
-                        } else {
-                            Color.clear
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        return GeometryReader { proxy in
+            let rowCount = max(weeks.count, 1)
+            let availableHeight = max(proxy.size.height - weekSpacing * CGFloat(rowCount - 1), 0)
+            let rowHeight = availableHeight / CGFloat(rowCount)
+
+            VStack(spacing: weekSpacing) {
+                ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                    HStack(spacing: daySpacing) {
+                        ForEach(Array(week.enumerated()), id: \.offset) { _, day in
+                            if let day {
+                                dayCell(
+                                    day,
+                                    entries: entriesByDay[calendar.component(.day, from: day)] ?? [],
+                                    rowHeight: rowHeight
+                                )
+                            } else {
+                                Color.clear
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }
                         }
                     }
+                    .frame(height: rowHeight)
                 }
-                .frame(maxHeight: .infinity)
             }
         }
         .frame(maxHeight: .infinity)
@@ -111,7 +124,7 @@ struct CalendarView: View {
 
     // MARK: - Day cell
 
-    private func dayCell(_ day: Date, entries: [Entry]) -> some View {
+    private func dayCell(_ day: Date, entries: [Entry], rowHeight: CGFloat) -> some View {
         let isToday = calendar.isDateInToday(day)
         let dotColors: [String] = Array(
             entries.map { categoryRepository.colorHex(forEntry: $0) }
@@ -133,19 +146,22 @@ struct CalendarView: View {
         } label: {
             Group {
                 if let coverAsset {
-                    photoCell(day, coverAsset: coverAsset, dotColors: dotColors, isToday: isToday)
+                    photoCell(day, coverAsset: coverAsset, dotColors: dotColors, isToday: isToday, rowHeight: rowHeight)
                 } else {
                     numberCell(day, dotColors: dotColors, isToday: isToday, showPlus: isToday)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .contentShape(Rectangle())
         .accessibilityLabel(dayCellLabel(day, entryCount: entries.count, isToday: isToday))
     }
 
-    /// 사진이 있는 날: 셀 전체가 사진 타일.
-    private func photoCell(_ day: Date, coverAsset: MediaAsset, dotColors: [String], isToday: Bool) -> some View {
-        ZStack(alignment: .topLeading) {
+    /// 사진이 있는 날: 균등한 날짜 grid를 깨지 않도록 고정 크기 썸네일만 표시한다.
+    private func photoCell(_ day: Date, coverAsset: MediaAsset, dotColors: [String], isToday: Bool, rowHeight: CGFloat) -> some View {
+        let tileSide = min(photoTileMaxSide, max(28, rowHeight - 10))
+
+        return ZStack(alignment: .topLeading) {
             AssetThumbnailView(asset: coverAsset)
             LinearGradient(
                 colors: [.black.opacity(0.35), .clear],
@@ -158,6 +174,7 @@ struct CalendarView: View {
                 .shadow(color: .black.opacity(0.5), radius: 1)
                 .padding(5)
         }
+        .frame(width: tileSide, height: tileSide)
         .overlay(alignment: .bottomTrailing) {
             HStack(spacing: 2) {
                 ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in

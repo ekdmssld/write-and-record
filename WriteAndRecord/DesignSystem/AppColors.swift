@@ -14,23 +14,23 @@ extension Color {
     }
 }
 
-/// 색상 토큰 — 로즈·올리브 팔레트 (docs/09 방향: 따뜻한 배경, 또렷한 액션).
+/// 색상 토큰 — 세이지·린넨 팔레트 (따뜻한 배경, 차분한 액션).
 /// 기준 팔레트:
-///   Light Pink #FDE5E8 · Blush #E7B4B9 · Deep Rose #A4565C
-///   Lime Cream #E8F0A2 · Olive #999D4F
+///   Milk Foam #FAF6F1 · Vanilla Linen #F2E6D8 · Oat Latte #DCD4C1
+///   Savory Sage #818263 · Avocado Smooth #C2C395
 enum AppColors {
-    static let bg = Color(hex: "#FDE5E8")          // light pink paper
+    static let bg = Color(hex: "#FAF6F1")          // milk foam
     static let surface = Color(hex: "#FFFFFF")
-    static let surfaceAlt = Color(hex: "#FBD9DD")  // blush light (파생)
-    static let text = Color(hex: "#43282B")        // deep rose를 어둡게 (파생)
-    static let textMuted = Color(hex: "#9A7378")
-    static let line = Color(hex: "#EFC6CB")
-    static let primary = Color(hex: "#A4565C")     // deep rose
-    static let primaryText = Color(hex: "#FFFFFF")
-    static let danger = Color(hex: "#C94F46")
-    static let success = Color(hex: "#999D4F")     // olive
-    /// 별점 등 포인트 골드.
-    static let star = Color(hex: "#D2B25E")
+    static let surfaceAlt = Color(hex: "#F2E6D8")  // vanilla linen
+    static let text = Color(hex: "#3F3B32")        // readable warm charcoal
+    static let textMuted = Color(hex: "#818263")   // savory sage
+    static let line = Color(hex: "#DCD4C1")        // oat latte
+    static let primary = Color(hex: "#818263")     // savory sage
+    static let primaryText = Color(hex: "#FAF6F1")
+    static let danger = Color(hex: "#9E5F55")      // muted blush warning
+    static let success = Color(hex: "#C2C395")     // avocado smooth
+    /// 별점 등 포인트 골드. 세이지 팔레트와 충돌하지 않는 낮은 채도의 골드.
+    static let star = Color(hex: "#B89B5E")
 
     static func category(_ hexString: String) -> Color {
         Color(hex: hexString)

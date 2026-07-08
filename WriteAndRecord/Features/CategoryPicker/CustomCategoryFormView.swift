@@ -10,7 +10,7 @@ struct CustomCategoryFormView: View {
 
     @State private var name = ""
     @State private var selectedIcon = "tag"
-    @State private var selectedColorHex = "#B3A0A2"
+    @State private var selectedColorHex = "#818263"
     @State private var selectedParentId: String?
     @State private var errorMessage: String?
 
@@ -20,11 +20,11 @@ struct CustomCategoryFormView: View {
         "cup.and.saucer", "graduationcap", "briefcase", "moon.stars"
     ]
 
-    /// 로즈·올리브 팔레트 (팔레트 5색 + 파생 톤).
+    /// 세이지·린넨 팔레트.
     private let colorOptions = [
-        "#E7B4B9", "#A4565C", "#FDE5E8", "#E8F0A2",
-        "#999D4F", "#D98A96", "#A8B676", "#C0A18A",
-        "#B08A94", "#B3A0A2", "#D2B25E", "#43282B"
+        "#818263", "#C2C395", "#DCD4C1", "#F2E6D8",
+        "#FAF6F1", "#EADFD6", "#A4AAAA", "#CCC2C1",
+        "#EFD7CF", "#F7D8CC", "#DDBAAE", "#F6C7CF"
     ]
 
     var body: some View {

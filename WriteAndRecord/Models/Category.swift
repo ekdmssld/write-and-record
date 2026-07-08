@@ -25,18 +25,18 @@ enum CategoryMainType: String, Codable, CaseIterable {
         }
     }
 
-    /// 로즈·올리브 팔레트 기반 카테고리 색 (팔레트 5색 + 파생 톤).
+    /// 세이지·린넨 팔레트 기반 카테고리 색.
     var defaultColorHex: String {
         switch self {
-        case .daily: return "#E7B4B9"    // blush (팔레트)
-        case .food: return "#D9C06A"     // warm lime (파생)
-        case .fandom: return "#A4565C"   // deep rose (팔레트)
-        case .exercise: return "#999D4F" // olive (팔레트)
-        case .movieTv: return "#B08A94"  // muted mauve (파생)
-        case .book: return "#C0A18A"     // warm tan (파생)
-        case .music: return "#D98A96"    // rose pink (파생)
-        case .place: return "#A8B676"    // light olive (파생)
-        case .custom: return "#B3A0A2"   // warm gray rose (파생)
+        case .daily: return "#F7D8CC"    // soft peach milk
+        case .food: return "#EFD7CF"     // peach protein
+        case .fandom: return "#DDBAAE"   // blush beet, muted
+        case .exercise: return "#818263" // savory sage
+        case .movieTv: return "#A4AAAA"  // metallic silver
+        case .book: return "#DCD4C1"     // oat latte
+        case .music: return "#C2C395"    // avocado smooth
+        case .place: return "#CCC2C1"    // pale silver
+        case .custom: return "#EADFD6"   // blanched almond
         }
     }
 

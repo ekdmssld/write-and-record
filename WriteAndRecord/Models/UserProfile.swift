@@ -59,14 +59,14 @@ struct ProfileTheme: Codable, Identifiable, Equatable {
     var backgroundStyle: ThemeBackgroundStyle
     var fontStyle: ThemeFontStyle
 
-    /// 로즈·올리브 팔레트 테마.
+    /// 세이지·린넨 팔레트 테마.
     static let defaultThemes: [ProfileTheme] = [
-        ProfileTheme(id: "deep-rose", name: "로즈", primaryColorHex: "#A4565C", backgroundStyle: .solid, fontStyle: .calm),
-        ProfileTheme(id: "blush", name: "블러시", primaryColorHex: "#E7B4B9", backgroundStyle: .gradient, fontStyle: .cute),
-        ProfileTheme(id: "light-pink", name: "라이트 핑크", primaryColorHex: "#FDE5E8", backgroundStyle: .solid, fontStyle: .cute),
-        ProfileTheme(id: "olive", name: "올리브", primaryColorHex: "#999D4F", backgroundStyle: .solid, fontStyle: .minimal),
-        ProfileTheme(id: "lime-cream", name: "라임", primaryColorHex: "#E8F0A2", backgroundStyle: .solid, fontStyle: .calm),
-        ProfileTheme(id: "rose-ink", name: "잉크", primaryColorHex: "#43282B", backgroundStyle: .solid, fontStyle: .editorial)
+        ProfileTheme(id: "savory-sage", name: "세이지", primaryColorHex: "#818263", backgroundStyle: .solid, fontStyle: .calm),
+        ProfileTheme(id: "avocado-smooth", name: "아보카도", primaryColorHex: "#C2C395", backgroundStyle: .solid, fontStyle: .minimal),
+        ProfileTheme(id: "vanilla-linen", name: "바닐라 린넨", primaryColorHex: "#F2E6D8", backgroundStyle: .solid, fontStyle: .calm),
+        ProfileTheme(id: "oat-latte", name: "오트 라떼", primaryColorHex: "#DCD4C1", backgroundStyle: .solid, fontStyle: .editorial),
+        ProfileTheme(id: "soft-peach", name: "소프트 피치", primaryColorHex: "#F7D8CC", backgroundStyle: .gradient, fontStyle: .cute),
+        ProfileTheme(id: "metallic-silver", name: "실버", primaryColorHex: "#A4AAAA", backgroundStyle: .solid, fontStyle: .minimal)
     ]
 
     static func theme(for id: String) -> ProfileTheme {

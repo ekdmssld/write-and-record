@@ -165,8 +165,12 @@ struct EntryDetailView: View {
                                 .font(AppTypography.callout)
                                 .foregroundStyle(AppColors.textMuted)
                         }
-                        if let marker = PlaceMapMarker(entry: entry) {
-                            PlaceMapView(markers: [marker])
+                        if let marker = PlaceMapMarker(
+                            entry: entry,
+                            coverAsset: entryRepository.coverAsset(for: entry),
+                            badgeCount: max(entry.assetIds.count, 1)
+                        ) {
+                            PlaceMapView(markers: [marker], pinStyle: .photo)
                                 .frame(height: 180)
                                 .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
                                 .overlay(

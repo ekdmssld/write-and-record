@@ -1,71 +1,53 @@
 import SwiftUI
 
-/// 라이브러리 기본 홈: 월 캘린더 + 선택 날짜의 기록 목록.
-/// 캘린더 블록(헤더+요일+그리드)이 화면의 75%를 차지하고,
-/// 사진이 있는 날짜는 셀 전체가 사진 타일로 표시된다.
+/// 라이브러리 기본 홈: 화면 전체를 채우는 월 캘린더.
+/// - 오늘 칸에는 + 버튼이 표시된다 (기록이 없을 때).
+/// - 기록 없는 날짜 탭 -> 카테고리 선택으로 바로 이동.
+/// - 기록 있는 날짜 탭 -> 하단에서 30% 시트가 올라와 그날의 기록을 보여준다.
 struct CalendarView: View {
     @EnvironmentObject private var entryRepository: EntryRepository
     @EnvironmentObject private var categoryRepository: CategoryRepository
     @EnvironmentObject private var router: NavigationRouter
 
     @State private var displayedMonth = Date()
-    @State private var selectedDate = Date()
+    @State private var daySheet: DaySheetItem?
 
     private var calendar: Calendar { .current }
 
-    var body: some View {
-        GeometryReader { geo in
-            ScrollView {
-                VStack(spacing: AppLayout.mediumGap) {
-                    calendarBlock(totalHeight: geo.size.height)
-                    Divider().overlay(AppColors.line)
-                    selectedDateSection
-                }
-                .padding(.horizontal, AppLayout.horizontalPadding)
-                .padding(.top, AppLayout.smallGap)
-                .padding(.bottom, AppLayout.largeGap)
-            }
-        }
+    struct DaySheetItem: Identifiable {
+        let date: Date
+        var id: Date { date }
     }
 
-    // MARK: - Calendar block (화면 75%)
-
-    private func calendarBlock(totalHeight: CGFloat) -> some View {
-        let weeks = DateUtils.monthGrid(for: displayedMonth)
-        let blockHeight = totalHeight * 0.75
-        let headerHeight: CGFloat = 44
-        let weekdayHeight: CGFloat = 22
-        let sectionSpacing = AppLayout.mediumGap * 2
-        let rowSpacing: CGFloat = 4
-        let rowCount = max(weeks.count, 1)
-        let gridHeight = max(blockHeight - headerHeight - weekdayHeight - sectionSpacing, 260)
-        let cellHeight = (gridHeight - rowSpacing * CGFloat(rowCount - 1)) / CGFloat(rowCount)
-        let entriesByDay = entryRepository.entryCountsByDay(in: displayedMonth)
-
-        return VStack(spacing: AppLayout.mediumGap) {
+    var body: some View {
+        VStack(spacing: AppLayout.smallGap) {
             monthHeader
-                .frame(height: headerHeight)
+                .frame(height: 44)
             weekdayRow
-                .frame(height: weekdayHeight)
-            VStack(spacing: rowSpacing) {
-                ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
-                    HStack(spacing: 3) {
-                        ForEach(Array(week.enumerated()), id: \.offset) { _, day in
-                            if let day {
-                                dayCell(
-                                    day,
-                                    entries: entriesByDay[calendar.component(.day, from: day)] ?? [],
-                                    height: cellHeight
-                                )
-                            } else {
-                                Color.clear
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: cellHeight)
-                            }
-                        }
+                .frame(height: 22)
+            monthGrid
+        }
+        .padding(.horizontal, AppLayout.horizontalPadding)
+        .padding(.top, AppLayout.smallGap)
+        .padding(.bottom, AppLayout.smallGap)
+        .sheet(item: $daySheet) { item in
+            DayEntriesSheet(
+                date: item.date,
+                onAdd: {
+                    daySheet = nil
+                    DispatchQueue.main.async {
+                        router.push(.categoryPicker(date: item.date))
+                    }
+                },
+                onOpenEntry: { entryId in
+                    daySheet = nil
+                    DispatchQueue.main.async {
+                        router.push(.entryDetail(entryId: entryId))
                     }
                 }
-            }
+            )
+            .presentationDetents([.fraction(0.32), .medium])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -96,12 +78,33 @@ struct CalendarView: View {
         }
     }
 
+    /// 남은 화면 전체를 채우는 날짜 그리드. 주 행이 균등하게 늘어난다.
+    private var monthGrid: some View {
+        let weeks = DateUtils.monthGrid(for: displayedMonth)
+        let entriesByDay = entryRepository.entryCountsByDay(in: displayedMonth)
+
+        return VStack(spacing: 4) {
+            ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                HStack(spacing: 3) {
+                    ForEach(Array(week.enumerated()), id: \.offset) { _, day in
+                        if let day {
+                            dayCell(day, entries: entriesByDay[calendar.component(.day, from: day)] ?? [])
+                        } else {
+                            Color.clear
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    }
+                }
+                .frame(maxHeight: .infinity)
+            }
+        }
+        .frame(maxHeight: .infinity)
+    }
+
     // MARK: - Day cell
 
-    private func dayCell(_ day: Date, entries: [Entry], height: CGFloat) -> some View {
-        let isSelected = calendar.isDate(day, inSameDayAs: selectedDate)
+    private func dayCell(_ day: Date, entries: [Entry]) -> some View {
         let isToday = calendar.isDateInToday(day)
-        // 카테고리 색 점 최대 3개 (Functional Spec 6장)
         let dotColors: [String] = Array(
             entries.map { categoryRepository.colorHex(forEntry: $0) }
                 .reduce(into: [String]()) { acc, hex in
@@ -109,31 +112,31 @@ struct CalendarView: View {
                 }
                 .prefix(3)
         )
-        // 그날 기록 중 첫 번째 사진을 셀 전체에 보여준다.
         let coverAsset = entries.compactMap { entryRepository.coverAsset(for: $0) }.first
 
         return Button {
-            selectedDate = day
-            // 기록이 없는 날짜는 탭이 곧 "기록 추가"로 이어진다 (기록 있는 날짜는 목록 표시).
             if entries.isEmpty {
+                // 기록 없는 날: 탭이 곧 기록 추가
                 router.push(.categoryPicker(date: day))
+            } else {
+                // 기록 있는 날: 하단 시트로 그날 기록 보기
+                daySheet = DaySheetItem(date: day)
             }
         } label: {
             Group {
                 if let coverAsset {
-                    photoCell(day, coverAsset: coverAsset, dotColors: dotColors, isSelected: isSelected, isToday: isToday)
+                    photoCell(day, coverAsset: coverAsset, dotColors: dotColors, isToday: isToday)
                 } else {
-                    numberCell(day, dotColors: dotColors, isSelected: isSelected, isToday: isToday)
+                    numberCell(day, dotColors: dotColors, isToday: isToday, showPlus: isToday)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: height)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .accessibilityLabel(dayCellLabel(day, entryCount: entries.count, isToday: isToday, isSelected: isSelected))
+        .accessibilityLabel(dayCellLabel(day, entryCount: entries.count, isToday: isToday))
     }
 
     /// 사진이 있는 날: 셀 전체가 사진 타일.
-    private func photoCell(_ day: Date, coverAsset: MediaAsset, dotColors: [String], isSelected: Bool, isToday: Bool) -> some View {
+    private func photoCell(_ day: Date, coverAsset: MediaAsset, dotColors: [String], isToday: Bool) -> some View {
         ZStack(alignment: .topLeading) {
             AssetThumbnailView(asset: coverAsset)
             LinearGradient(
@@ -160,94 +163,157 @@ struct CalendarView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(
-                    isSelected ? AppColors.primary : (isToday ? AppColors.primary.opacity(0.6) : .clear),
-                    lineWidth: isSelected ? 2.5 : 1.5
-                )
+                .stroke(isToday ? AppColors.primary : .clear, lineWidth: 1.5)
         )
     }
 
-    /// 사진이 없는 날: 숫자 + 카테고리 점.
-    private func numberCell(_ day: Date, dotColors: [String], isSelected: Bool, isToday: Bool) -> some View {
+    /// 사진이 없는 날: 숫자 + 카테고리 점. 오늘은 + 버튼 표시.
+    private func numberCell(_ day: Date, dotColors: [String], isToday: Bool, showPlus: Bool) -> some View {
         VStack(spacing: 4) {
             Text("\(calendar.component(.day, from: day))")
                 .font(AppTypography.callout)
-                .foregroundStyle(isSelected ? AppColors.primaryText : AppColors.text)
-                .frame(width: 34, height: 34)
-                .background(
-                    ZStack {
-                        if isSelected {
-                            Circle().fill(AppColors.primary)
-                        } else if isToday {
-                            Circle().stroke(AppColors.primary, lineWidth: 1.5)
-                        }
+                .foregroundStyle(AppColors.text)
+            if showPlus {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppColors.primaryText)
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(AppColors.primary))
+            } else {
+                HStack(spacing: 3) {
+                    ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in
+                        Circle()
+                            .fill(AppColors.category(hex))
+                            .frame(width: 5, height: 5)
                     }
-                )
-            HStack(spacing: 3) {
-                ForEach(Array(dotColors.enumerated()), id: \.offset) { _, hex in
-                    Circle()
-                        .fill(AppColors.category(hex))
-                        .frame(width: 5, height: 5)
                 }
+                .frame(height: 6)
             }
-            .frame(height: 6)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(isToday ? AppColors.primary : .clear, lineWidth: 1.5)
+        )
     }
 
-    private func dayCellLabel(_ day: Date, entryCount: Int, isToday: Bool, isSelected: Bool) -> String {
+    private func dayCellLabel(_ day: Date, entryCount: Int, isToday: Bool) -> String {
         var parts = [DateUtils.display(day)]
         if isToday { parts.append("오늘") }
-        if entryCount > 0 { parts.append("기록 \(entryCount)개") }
-        if isSelected { parts.append("선택됨") }
-        return parts.joined(separator: ", ")
-    }
-
-    // MARK: - Selected date section
-
-    private var selectedDateSection: some View {
-        let entries = entryRepository.entries(on: selectedDate)
-        return VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
-            HStack {
-                Text(DateUtils.display(selectedDate))
-                    .font(AppTypography.headline)
-                    .foregroundStyle(AppColors.text)
-                Spacer()
-                Button {
-                    router.push(.categoryPicker(date: selectedDate))
-                } label: {
-                    Label("기록 추가", systemImage: "plus")
-                        .font(AppTypography.callout)
-                        .foregroundStyle(AppColors.primary)
-                }
-                .accessibilityLabel("\(DateUtils.display(selectedDate))에 기록 추가")
-            }
-
-            if entries.isEmpty {
-                EmptyStateView(
-                    iconName: "square.and.pencil",
-                    title: "이 날의 기록이 비어 있어요",
-                    subtitle: "짧은 문장 하나만 남겨도 괜찮아요.",
-                    actionTitle: "이 날 기록하기"
-                ) {
-                    router.push(.categoryPicker(date: selectedDate))
-                }
-            } else {
-                ForEach(entries) { entry in
-                    Button {
-                        router.push(.entryDetail(entryId: entry.id))
-                    } label: {
-                        EntryCardView(entry: entry)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+        if entryCount > 0 {
+            parts.append("기록 \(entryCount)개, 탭하면 기록 보기")
+        } else {
+            parts.append("탭하면 기록 추가")
         }
+        return parts.joined(separator: ", ")
     }
 
     private func moveMonth(_ offset: Int) {
         if let newMonth = calendar.date(byAdding: .month, value: offset, to: displayedMonth) {
             displayedMonth = newMonth
         }
+    }
+}
+
+/// 날짜 탭 시 하단에서 올라오는 그날의 기록 시트.
+/// 상단: 날짜(중앙) + 우측 + 버튼. 행: 왼쪽 사진, 오른쪽 제목/카테고리·별점/세부내용.
+struct DayEntriesSheet: View {
+    let date: Date
+    let onAdd: () -> Void
+    let onOpenEntry: (String) -> Void
+
+    @EnvironmentObject private var entryRepository: EntryRepository
+    @EnvironmentObject private var categoryRepository: CategoryRepository
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // header: 날짜 중앙 정렬 + 우측 추가 버튼
+            ZStack {
+                Text(DateUtils.display(date))
+                    .font(AppTypography.headline)
+                    .foregroundStyle(AppColors.text)
+                HStack {
+                    Spacer()
+                    IconButton(systemName: "plus", accessibilityLabel: "이 날 기록 추가") {
+                        onAdd()
+                    }
+                }
+            }
+            .padding(.horizontal, AppLayout.mediumGap)
+            .padding(.top, AppLayout.smallGap)
+
+            ScrollView {
+                VStack(spacing: AppLayout.smallGap) {
+                    ForEach(entryRepository.entries(on: date)) { entry in
+                        Button {
+                            onOpenEntry(entry.id)
+                        } label: {
+                            entryRow(entry)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, AppLayout.horizontalPadding)
+                .padding(.vertical, AppLayout.smallGap)
+            }
+        }
+        .background(AppColors.bg)
+    }
+
+    private func entryRow(_ entry: Entry) -> some View {
+        let colorHex = categoryRepository.colorHex(forEntry: entry)
+        return HStack(spacing: AppLayout.mediumGap) {
+            // 왼편 사진
+            Group {
+                if let cover = entryRepository.coverAsset(for: entry) {
+                    AssetThumbnailView(asset: cover, placeholderColorHex: colorHex)
+                } else {
+                    ZStack {
+                        AppColors.category(colorHex).opacity(0.15)
+                        Image(systemName: categoryRepository.category(id: entry.categoryId)?.icon ?? "tag")
+                            .foregroundStyle(AppColors.category(colorHex))
+                    }
+                }
+            }
+            .frame(width: 64, height: 64)
+            .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+
+            // 오른편 3행: 제목 / 카테고리+별점 / 세부내용
+            VStack(alignment: .leading, spacing: 3) {
+                Text(entry.title)
+                    .font(AppTypography.headline)
+                    .foregroundStyle(AppColors.text)
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(AppColors.category(colorHex))
+                        .frame(width: 7, height: 7)
+                    Text(categoryRepository.displayName(forEntry: entry))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textMuted)
+                    if let rating = entry.rating {
+                        RatingDisplay(rating: rating)
+                    }
+                    if entry.isWishlist {
+                        Image(systemName: "bookmark.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(AppColors.primary)
+                    }
+                }
+                Text(entry.body.isEmpty ? "내용 없음" : entry.body)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(entry.body.isEmpty ? AppColors.textMuted.opacity(0.6) : AppColors.textMuted)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(AppLayout.smallGap)
+        .background(AppColors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                .stroke(AppColors.line, lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
     }
 }

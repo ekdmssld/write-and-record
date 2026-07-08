@@ -16,6 +16,8 @@ struct UserProfile: Codable, Identifiable, Equatable {
     var socialEnabled: Bool
     var friendShareEnabled: Bool
     var notificationEnabled: Bool
+    /// 매일 기록 리마인더 시각. 기존 데이터 호환을 위해 optional (nil = 21:00 기본값).
+    var reminderTime: Date?
     var onboardingCompletedAt: Date?
     var createdAt: Date
     var updatedAt: Date
@@ -32,6 +34,7 @@ struct UserProfile: Codable, Identifiable, Equatable {
             socialEnabled: false,
             friendShareEnabled: false,
             notificationEnabled: false,
+            reminderTime: nil,
             onboardingCompletedAt: nil,
             createdAt: now,
             updatedAt: now

@@ -41,6 +41,10 @@ struct MainTabView: View {
                     Label("내 공간", systemImage: "person.crop.circle")
                 }
         }
+        .task {
+            // 재설치/기기 재시작 등으로 예약이 사라졌을 수 있으므로 시작 시 동기화
+            NotificationService.sync(with: appState.profile)
+        }
     }
 }
 

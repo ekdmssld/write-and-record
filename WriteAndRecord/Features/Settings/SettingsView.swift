@@ -103,8 +103,54 @@ struct SettingsView: View {
                 Label("카테고리 순서 변경", systemImage: "line.3.horizontal")
             }
             Toggle("친구에게 기록 공유 허용", isOn: profileBinding(\.friendShareEnabled))
-            Toggle("기록 알림", isOn: profileBinding(\.notificationEnabled))
+            Toggle("기록 알림", isOn: notificationBinding)
+            if appState.profile?.notificationEnabled == true {
+                DatePicker(
+                    "알림 시간",
+                    selection: reminderTimeBinding,
+                    displayedComponents: .hourAndMinute
+                )
+            }
         }
+    }
+
+    /// 알림 토글: 켜는 순간에만 권한을 요청하고, 끄면 예약을 제거한다 (docs/05 13장).
+    private var notificationBinding: Binding<Bool> {
+        Binding(
+            get: { appState.profile?.notificationEnabled ?? false },
+            set: { enabled in
+                guard var profile = appState.profile else { return }
+                profile.notificationEnabled = enabled
+                appState.saveProfile(profile)
+                if enabled {
+                    Task {
+                        let granted = await NotificationService.requestPermission()
+                        await MainActor.run {
+                            if granted {
+                                NotificationService.sync(with: appState.profile)
+                                toastMessage = "매일 알림을 보내드릴게요."
+                            } else {
+                                toastMessage = "설정에서 알림 권한을 허용해 주세요."
+                            }
+                        }
+                    }
+                } else {
+                    NotificationService.cancelDailyReminder()
+                }
+            }
+        )
+    }
+
+    private var reminderTimeBinding: Binding<Date> {
+        Binding(
+            get: { appState.profile?.reminderTime ?? NotificationService.defaultReminderTime },
+            set: { newTime in
+                guard var profile = appState.profile else { return }
+                profile.reminderTime = newTime
+                appState.saveProfile(profile)
+                NotificationService.sync(with: appState.profile)
+            }
+        )
     }
 
     private var dataSection: some View {

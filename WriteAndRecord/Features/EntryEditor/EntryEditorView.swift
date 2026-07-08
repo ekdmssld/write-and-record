@@ -14,6 +14,7 @@ struct EntryEditorView: View {
     @State private var showSaveFailedAlert = false
     @State private var showCategoryChange = false
     @State private var showVisibilitySheet = false
+    @State private var showPlaceSearch = false
     @State private var toastMessage: String?
     /// 현재 펼쳐진 추가 섹션 (한 번에 하나).
     @State private var activeSection: EditorSection?
@@ -77,6 +78,12 @@ struct EntryEditorView: View {
         .sheet(isPresented: $showPhotoPicker) {
             DatePhotoPickerView(date: viewModel.entry.date, alreadySelected: viewModel.pendingAssets) { newAssets in
                 viewModel.pendingAssets = newAssets
+                viewModel.noteChanged()
+            }
+        }
+        .sheet(isPresented: $showPlaceSearch) {
+            PlaceSearchSheet(initialQuery: viewModel.entry.place?.name ?? "") { selectedPlace in
+                viewModel.entry.place = selectedPlace
                 viewModel.noteChanged()
             }
         }
@@ -431,27 +438,88 @@ struct EntryEditorView: View {
 
     private var placeFields: some View {
         VStack(alignment: .leading, spacing: AppLayout.smallGap) {
-            GrowingTextField(placeholder: "장소 이름", text: Binding(
-                get: { viewModel.entry.place?.name ?? "" },
-                set: { newValue in
-                    if newValue.isEmpty {
-                        viewModel.entry.place = nil
-                    } else {
-                        var place = viewModel.entry.place ?? PlaceRef(name: "")
-                        place.name = newValue
-                        viewModel.entry.place = place
+            if let place = viewModel.entry.place {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .top, spacing: AppLayout.smallGap) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(AppColors.primary)
+                            .frame(width: 24)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(place.name)
+                                .font(AppTypography.headline)
+                                .foregroundStyle(AppColors.text)
+                                .lineLimit(2)
+                            if let address = place.address, !address.isEmpty {
+                                Text(address)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColors.textMuted)
+                                    .lineLimit(2)
+                            }
+                            if place.latitude != nil && place.longitude != nil {
+                                Label("지도에 표시돼요", systemImage: "map")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(AppColors.primary)
+                            }
+                        }
+                        Spacer()
                     }
-                    viewModel.noteChanged()
+
+                    HStack(spacing: AppLayout.smallGap) {
+                        Button {
+                            showPlaceSearch = true
+                        } label: {
+                            Label("다시 선택", systemImage: "magnifyingglass")
+                                .font(AppTypography.caption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(AppColors.surfaceAlt)
+                                .clipShape(Capsule())
+                        }
+
+                        Button(role: .destructive) {
+                            viewModel.entry.place = nil
+                            viewModel.noteChanged()
+                        } label: {
+                            Label("삭제", systemImage: "xmark.circle")
+                                .font(AppTypography.caption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(AppColors.surfaceAlt)
+                                .clipShape(Capsule())
+                        }
+                    }
                 }
-            ), lineRange: 1...2)
-            if viewModel.entry.place != nil {
-                GrowingTextField(placeholder: "주소 (선택)", text: Binding(
-                    get: { viewModel.entry.place?.address ?? "" },
-                    set: { newValue in
-                        viewModel.entry.place?.address = newValue.isEmpty ? nil : newValue
-                        viewModel.noteChanged()
+                .padding(AppLayout.smallGap)
+                .background(AppColors.surfaceAlt)
+                .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+            } else {
+                Button {
+                    showPlaceSearch = true
+                } label: {
+                    HStack(spacing: AppLayout.smallGap) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(AppColors.primary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("지역/랜드마크 검색")
+                                .font(AppTypography.callout)
+                                .foregroundStyle(AppColors.text)
+                            Text("성수동, 롯데월드몰처럼 검색해서 지도 위치를 저장해요.")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.textMuted)
+                                .lineLimit(2)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(AppColors.textMuted)
                     }
-                ), lineRange: 1...2)
+                    .padding(AppLayout.mediumGap)
+                    .background(AppColors.surfaceAlt)
+                    .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                }
+                .buttonStyle(.plain)
             }
         }
     }

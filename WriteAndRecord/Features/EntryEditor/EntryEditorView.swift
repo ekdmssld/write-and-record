@@ -228,54 +228,80 @@ struct EntryEditorView: View {
                 .font(AppTypography.headline)
                 .foregroundStyle(AppColors.text)
 
-            StringListEditor(title: "장점", systemImage: "hand.thumbsup", items: $viewModel.entry.pros) {
-                viewModel.noteChanged()
-            }
-            StringListEditor(title: "단점", systemImage: "hand.thumbsdown", items: $viewModel.entry.cons) {
-                viewModel.noteChanged()
-            }
-            StringListEditor(title: "팁", systemImage: "lightbulb", items: $viewModel.entry.tips) {
-                viewModel.noteChanged()
-            }
-
-            countRow
-            placeSection
-            linksSection
-        }
-    }
-
-    private var countRow: some View {
-        HStack {
-            Label("횟수", systemImage: "number")
-                .font(AppTypography.body)
-                .foregroundStyle(AppColors.text)
-            Spacer()
-            TextField("예: 3", text: Binding(
-                get: { viewModel.entry.count.map(String.init) ?? "" },
-                set: { newValue in
-                    viewModel.entry.count = Int(newValue.trimmingCharacters(in: .whitespaces))
+            ExpandableSection(
+                title: "장점",
+                systemImage: "hand.thumbsup",
+                summary: viewModel.entry.pros.isEmpty ? nil : "\(viewModel.entry.pros.count)개"
+            ) {
+                StringListEditor(title: "장점", items: $viewModel.entry.pros) {
                     viewModel.noteChanged()
                 }
-            ))
-            .keyboardType(.numberPad)
-            .multilineTextAlignment(.trailing)
-            .frame(width: 100)
+            }
+
+            ExpandableSection(
+                title: "단점",
+                systemImage: "hand.thumbsdown",
+                summary: viewModel.entry.cons.isEmpty ? nil : "\(viewModel.entry.cons.count)개"
+            ) {
+                StringListEditor(title: "단점", items: $viewModel.entry.cons) {
+                    viewModel.noteChanged()
+                }
+            }
+
+            ExpandableSection(
+                title: "팁",
+                systemImage: "lightbulb",
+                summary: viewModel.entry.tips.isEmpty ? nil : "\(viewModel.entry.tips.count)개"
+            ) {
+                StringListEditor(title: "팁", items: $viewModel.entry.tips) {
+                    viewModel.noteChanged()
+                }
+            }
+
+            ExpandableSection(
+                title: "횟수",
+                systemImage: "number",
+                summary: viewModel.entry.count.map { "\($0)회" }
+            ) {
+                countField
+            }
+
+            ExpandableSection(
+                title: "장소",
+                systemImage: "mappin.and.ellipse",
+                summary: viewModel.entry.place?.name
+            ) {
+                placeFields
+            }
+
+            ExpandableSection(
+                title: "링크",
+                systemImage: "link",
+                summary: viewModel.entry.links.isEmpty ? nil : "\(viewModel.entry.links.count)개"
+            ) {
+                linksContent
+            }
         }
-        .padding(AppLayout.mediumGap)
-        .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppLayout.cardRadius)
-                .stroke(AppColors.line, lineWidth: 1)
-        )
     }
 
-    private var placeSection: some View {
+    private var countField: some View {
+        TextField("예: 3", text: Binding(
+            get: { viewModel.entry.count.map(String.init) ?? "" },
+            set: { newValue in
+                viewModel.entry.count = Int(newValue.trimmingCharacters(in: .whitespaces))
+                viewModel.noteChanged()
+            }
+        ))
+        .keyboardType(.numberPad)
+        .font(AppTypography.body)
+        .padding(10)
+        .background(AppColors.surfaceAlt)
+        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+    }
+
+    private var placeFields: some View {
         VStack(alignment: .leading, spacing: AppLayout.smallGap) {
-            Label("장소", systemImage: "mappin.and.ellipse")
-                .font(AppTypography.body)
-                .foregroundStyle(AppColors.text)
-            TextField("장소 이름", text: Binding(
+            GrowingTextField(placeholder: "장소 이름", text: Binding(
                 get: { viewModel.entry.place?.name ?? "" },
                 set: { newValue in
                     if newValue.isEmpty {
@@ -287,50 +313,25 @@ struct EntryEditorView: View {
                     }
                     viewModel.noteChanged()
                 }
-            ))
-            .font(AppTypography.body)
+            ), lineRange: 1...2)
             if viewModel.entry.place != nil {
-                TextField("주소 (선택)", text: Binding(
+                GrowingTextField(placeholder: "주소 (선택)", text: Binding(
                     get: { viewModel.entry.place?.address ?? "" },
                     set: { newValue in
                         viewModel.entry.place?.address = newValue.isEmpty ? nil : newValue
                         viewModel.noteChanged()
                     }
-                ))
-                .font(AppTypography.callout)
-                .foregroundStyle(AppColors.textMuted)
+                ), lineRange: 1...2)
             }
         }
-        .padding(AppLayout.mediumGap)
-        .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppLayout.cardRadius)
-                .stroke(AppColors.line, lineWidth: 1)
-        )
     }
 
-    private var linksSection: some View {
+    private var linksContent: some View {
         VStack(alignment: .leading, spacing: AppLayout.smallGap) {
-            HStack {
-                Label("링크", systemImage: "link")
-                    .font(AppTypography.body)
-                    .foregroundStyle(AppColors.text)
-                Spacer()
-                Button {
-                    viewModel.entry.links.append(LinkRef(title: nil, url: ""))
-                    viewModel.noteChanged()
-                } label: {
-                    Image(systemName: "plus.circle")
-                        .foregroundStyle(AppColors.primary)
-                }
-                .accessibilityLabel("링크 추가")
-            }
             ForEach($viewModel.entry.links) { $link in
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack {
-                        TextField("https://...", text: $link.url)
-                            .font(AppTypography.callout)
+                    HStack(alignment: .top) {
+                        GrowingTextField(placeholder: "https://...", text: $link.url, lineRange: 1...3)
                             .keyboardType(.URL)
                             .autocapitalization(.none)
                             .onChange(of: link.url) { _, _ in viewModel.noteChanged() }
@@ -340,6 +341,7 @@ struct EntryEditorView: View {
                         } label: {
                             Image(systemName: "minus.circle")
                                 .foregroundStyle(AppColors.danger)
+                                .frame(width: 32, height: 40)
                         }
                         .accessibilityLabel("링크 삭제")
                     }
@@ -350,50 +352,45 @@ struct EntryEditorView: View {
                     }
                 }
             }
+            Button {
+                viewModel.entry.links.append(LinkRef(title: nil, url: ""))
+                viewModel.noteChanged()
+            } label: {
+                Label("링크 추가", systemImage: "plus.circle")
+                    .font(AppTypography.callout)
+                    .foregroundStyle(AppColors.primary)
+            }
         }
-        .padding(AppLayout.mediumGap)
-        .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppLayout.cardRadius)
-                .stroke(AppColors.line, lineWidth: 1)
-        )
     }
 
     @ViewBuilder
     private var metadataSection: some View {
         let fields = MetadataField.fields(for: category?.mainType ?? .custom)
         if !fields.isEmpty {
-            VStack(alignment: .leading, spacing: AppLayout.smallGap) {
-                Text("\(category?.name ?? "") 상세")
-                    .font(AppTypography.headline)
-                    .foregroundStyle(AppColors.text)
-                ForEach(fields) { field in
-                    HStack {
-                        Text(field.label)
-                            .font(AppTypography.callout)
-                            .foregroundStyle(AppColors.textMuted)
-                            .frame(width: 130, alignment: .leading)
-                        TextField("", text: Binding(
-                            get: { viewModel.entry.metadata[field.key] ?? "" },
-                            set: { newValue in
-                                viewModel.entry.metadata[field.key] = newValue
-                                viewModel.noteChanged()
-                            }
-                        ))
-                        .font(AppTypography.body)
-                        .keyboardType(field.keyboardNumeric ? .decimalPad : .default)
+            let filledCount = fields.filter { !(viewModel.entry.metadata[$0.key] ?? "").isEmpty }.count
+            ExpandableSection(
+                title: "\(category?.name ?? "") 상세",
+                systemImage: "list.bullet.rectangle",
+                summary: filledCount > 0 ? "\(filledCount)개 입력됨" : nil
+            ) {
+                VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
+                    ForEach(fields) { field in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(field.label)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.textMuted)
+                            GrowingTextField(placeholder: field.label, text: Binding(
+                                get: { viewModel.entry.metadata[field.key] ?? "" },
+                                set: { newValue in
+                                    viewModel.entry.metadata[field.key] = newValue
+                                    viewModel.noteChanged()
+                                }
+                            ), lineRange: 1...3)
+                            .keyboardType(field.keyboardNumeric ? .decimalPad : .default)
+                        }
                     }
-                    Divider().overlay(AppColors.line)
                 }
             }
-            .padding(AppLayout.mediumGap)
-            .background(AppColors.surface)
-            .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppLayout.cardRadius)
-                    .stroke(AppColors.line, lineWidth: 1)
-            )
         }
     }
 
@@ -418,31 +415,17 @@ struct EntryEditorView: View {
 }
 
 /// 장점/단점/팁 문자열 리스트 편집기 (각 항목 최대 120자).
+/// ExpandableSection 안에서 쓰는 내용부 — 입력칸은 글 길이에 맞게 자란다.
 struct StringListEditor: View {
     let title: String
-    let systemImage: String
     @Binding var items: [String]
     var onChanged: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppLayout.smallGap) {
-            HStack {
-                Label(title, systemImage: systemImage)
-                    .font(AppTypography.body)
-                    .foregroundStyle(AppColors.text)
-                Spacer()
-                Button {
-                    items.append("")
-                    onChanged()
-                } label: {
-                    Image(systemName: "plus.circle")
-                        .foregroundStyle(AppColors.primary)
-                }
-                .accessibilityLabel("\(title) 항목 추가")
-            }
             ForEach(items.indices, id: \.self) { index in
-                HStack {
-                    TextField("\(title) 입력", text: Binding(
+                HStack(alignment: .top) {
+                    GrowingTextField(placeholder: "\(title) 입력", text: Binding(
                         get: { index < items.count ? items[index] : "" },
                         set: { newValue in
                             if index < items.count {
@@ -450,8 +433,7 @@ struct StringListEditor: View {
                                 onChanged()
                             }
                         }
-                    ))
-                    .font(AppTypography.callout)
+                    ), lineRange: 1...4)
                     Button {
                         if index < items.count {
                             items.remove(at: index)
@@ -460,17 +442,20 @@ struct StringListEditor: View {
                     } label: {
                         Image(systemName: "minus.circle")
                             .foregroundStyle(AppColors.danger)
+                            .frame(width: 32, height: 40)
                     }
                     .accessibilityLabel("\(title) 항목 삭제")
                 }
             }
+            Button {
+                items.append("")
+                onChanged()
+            } label: {
+                Label("\(title) 추가", systemImage: "plus.circle")
+                    .font(AppTypography.callout)
+                    .foregroundStyle(AppColors.primary)
+            }
+            .accessibilityLabel("\(title) 항목 추가")
         }
-        .padding(AppLayout.mediumGap)
-        .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppLayout.cardRadius)
-                .stroke(AppColors.line, lineWidth: 1)
-        )
     }
 }

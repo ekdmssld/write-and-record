@@ -101,6 +101,11 @@ struct EntryEditorView: View {
             }
         }
         .onDisappear {
+            // 스와이프 뒤로가기 등으로 이탈해도 입력을 잃지 않도록 draft를 남긴다.
+            // (정상 저장/취소 경로에서는 이미 draft가 정리된 뒤라 no-op)
+            if viewModel.saveState != .saved {
+                viewModel.saveDraftNow()
+            }
             viewModel.cancelAutosave()
         }
     }
@@ -607,6 +612,8 @@ struct EntryEditorView: View {
 
     private func cancelAndClose() {
         viewModel.cancelAutosave()
+        // 명시적으로 버린 경우에는 onDisappear의 draft 저장이 다시 살리지 않도록 초기화
+        viewModel.hasChanges = false
         DraftStore.clear()
         router.pop()
     }

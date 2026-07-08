@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 장소별 기록 목록 (MVP는 리스트, 지도는 P2).
+/// 장소별 기록 목록. 좌표가 있는 장소는 지도 핀으로도 표시한다.
 struct PlacesView: View {
     @EnvironmentObject private var entryRepository: EntryRepository
     @EnvironmentObject private var router: NavigationRouter
@@ -26,6 +26,10 @@ struct PlacesView: View {
             .sorted { $0.place < $1.place }
     }
 
+    private var mappedMarkers: [PlaceMapMarker] {
+        placedEntries.compactMap { PlaceMapMarker(entry: $0) }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
@@ -40,6 +44,30 @@ struct PlacesView: View {
                         title: "장소가 있는 기록이 없어요",
                         subtitle: "기록에 장소를 추가하면 여기에 모여요."
                     )
+                }
+
+                if !mappedMarkers.isEmpty {
+                    VStack(alignment: .leading, spacing: AppLayout.smallGap) {
+                        HStack {
+                            Label("지도", systemImage: "map")
+                                .font(AppTypography.headline)
+                                .foregroundStyle(AppColors.text)
+                            Spacer()
+                            Text("\(mappedMarkers.count)개")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.textMuted)
+                        }
+                        .padding(.horizontal, AppLayout.horizontalPadding)
+
+                        PlaceMapView(markers: mappedMarkers)
+                            .frame(height: 260)
+                            .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                                    .stroke(AppColors.line, lineWidth: 1)
+                            )
+                            .padding(.horizontal, AppLayout.horizontalPadding)
+                    }
                 }
 
                 ForEach(groupedByPlace, id: \.place) { group in

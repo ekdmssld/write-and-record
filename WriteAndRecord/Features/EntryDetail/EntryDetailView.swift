@@ -157,13 +157,22 @@ struct EntryDetailView: View {
                 listSection(title: "팁", systemImage: "lightbulb", items: entry.tips, tint: AppColors.primary)
 
                 if let place = entry.place {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: AppLayout.smallGap) {
                         Label(place.name, systemImage: "mappin.and.ellipse")
                             .font(AppTypography.headline)
                         if let address = place.address {
                             Text(address)
                                 .font(AppTypography.callout)
                                 .foregroundStyle(AppColors.textMuted)
+                        }
+                        if let marker = PlaceMapMarker(entry: entry) {
+                            PlaceMapView(markers: [marker])
+                                .frame(height: 180)
+                                .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                                        .stroke(AppColors.line, lineWidth: 1)
+                                )
                         }
                     }
                 }

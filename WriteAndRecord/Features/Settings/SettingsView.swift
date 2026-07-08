@@ -6,13 +6,14 @@ struct SettingsView: View {
     @EnvironmentObject private var entryRepository: EntryRepository
     @EnvironmentObject private var categoryRepository: CategoryRepository
 
+    @StateObject private var router = NavigationRouter()
     @State private var exportURL: URL?
     @State private var showSignOutDialog = false
     @State private var showFeedbackForm = false
     @State private var toastMessage: String?
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $router.path) {
             List {
                 profileSection
                 statsSection
@@ -30,6 +31,7 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .background(AppColors.bg)
             .navigationTitle("내 공간")
+            .withAppRoutes()
             .toast(message: $toastMessage)
             .sheet(isPresented: Binding(
                 get: { exportURL != nil },
@@ -52,6 +54,7 @@ struct SettingsView: View {
                 Button("취소", role: .cancel) { }
             }
         }
+        .environmentObject(router)
     }
 
     private var profileSection: some View {
@@ -85,10 +88,10 @@ struct SettingsView: View {
 
     private var statsSection: some View {
         Section("기록 통계") {
-            LabeledContent("전체 기록", value: "\(entryRepository.activeEntries.count)개")
-            LabeledContent("위시리스트", value: "\(entryRepository.wishlistEntries.count)개")
-            LabeledContent("별점 5 기록", value: "\(entryRepository.fiveStarEntries.count)개")
-            LabeledContent("만든 기록 카드", value: "\(entryRepository.recordCards.count)개")
+            statsLink(kind: .allEntries, count: entryRepository.activeEntries.count)
+            statsLink(kind: .wishlist, count: entryRepository.wishlistEntries.count)
+            statsLink(kind: .fiveStar, count: entryRepository.fiveStarEntries.count)
+            statsLink(kind: .recordCards, count: entryRepository.recordCards.count)
         }
     }
 
@@ -162,6 +165,25 @@ struct SettingsView: View {
     }
 
     // MARK: - Helpers
+
+    private func statsLink(kind: SettingsStatKind, count: Int) -> some View {
+        NavigationLink {
+            SettingsStatDetailView(kind: kind)
+        } label: {
+            HStack(spacing: AppLayout.smallGap) {
+                Image(systemName: kind.iconName)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(AppColors.category(kind.colorHex))
+                    .frame(width: 24)
+                Text(kind.title)
+                    .foregroundStyle(AppColors.text)
+                Spacer()
+                Text("\(count)개")
+                    .foregroundStyle(AppColors.textMuted)
+            }
+        }
+        .accessibilityLabel("\(kind.title) \(count)개 보기")
+    }
 
     private func profileBinding(_ keyPath: WritableKeyPath<UserProfile, Bool>) -> Binding<Bool> {
         Binding(

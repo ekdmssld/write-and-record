@@ -14,6 +14,40 @@ struct LinkRef: Codable, Equatable, Hashable, Identifiable {
     var url: String
 }
 
+/// 위시리스트 분류 (docs/12 J).
+enum WishlistType: String, Codable, CaseIterable, Identifiable {
+    case movieTv
+    case book
+    case place
+    case food
+    case item
+    case activity
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .movieTv: return "보고 싶은"
+        case .book: return "읽고 싶은"
+        case .place: return "가고 싶은"
+        case .food: return "먹고 싶은"
+        case .item: return "사고 싶은"
+        case .activity: return "하고 싶은"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .movieTv: return "film"
+        case .book: return "book"
+        case .place: return "mappin.and.ellipse"
+        case .food: return "fork.knife"
+        case .item: return "bag"
+        case .activity: return "sparkles"
+        }
+    }
+}
+
 struct Entry: Codable, Identifiable, Equatable {
     var id: String
     var userId: String
@@ -24,6 +58,8 @@ struct Entry: Codable, Identifiable, Equatable {
     var body: String
     var rating: Int?
     var isWishlist: Bool
+    /// 위시 분류. 기존 데이터 호환을 위해 optional (docs/12 J).
+    var wishlistType: WishlistType?
     var coverAssetId: String?
     var assetIds: [String]
     var pros: [String]
@@ -56,6 +92,7 @@ struct Entry: Codable, Identifiable, Equatable {
             body: "",
             rating: nil,
             isWishlist: false,
+            wishlistType: nil,
             coverAssetId: nil,
             assetIds: [],
             pros: [],

@@ -10,11 +10,7 @@ struct CollectionsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
-                smartCollectionRow(
-                    icon: "bookmark.fill",
-                    title: "위시리스트",
-                    entries: entryRepository.wishlistEntries
-                )
+                wishlistRow
                 smartCollectionRow(
                     icon: "star.fill",
                     title: "별점 5",
@@ -51,6 +47,42 @@ struct CollectionsView: View {
                 }
             }
             .padding(.vertical, AppLayout.smallGap)
+        }
+    }
+
+    /// 위시리스트는 분류(보고/읽고/가고 싶은...)별 그룹 뷰로 이동한다.
+    @ViewBuilder
+    private var wishlistRow: some View {
+        let entries = entryRepository.wishlistEntries
+        if !entries.isEmpty {
+            NavigationLink {
+                WishlistCollectionView(entries: entries)
+            } label: {
+                HStack(spacing: AppLayout.mediumGap) {
+                    Image(systemName: "bookmark.fill")
+                        .foregroundStyle(AppColors.primary)
+                        .frame(width: 32)
+                    Text("위시리스트")
+                        .font(AppTypography.headline)
+                        .foregroundStyle(AppColors.text)
+                    Spacer()
+                    Text("\(entries.count)")
+                        .font(AppTypography.callout)
+                        .foregroundStyle(AppColors.textMuted)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13))
+                        .foregroundStyle(AppColors.textMuted)
+                }
+                .padding(AppLayout.mediumGap)
+                .background(AppColors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                        .stroke(AppColors.line, lineWidth: 1)
+                )
+            }
+            .padding(.horizontal, AppLayout.horizontalPadding)
+            .accessibilityLabel("위시리스트 컬렉션, 기록 \(entries.count)개")
         }
     }
 
@@ -112,6 +144,60 @@ struct CollectionEntriesView: View {
         }
         .background(AppColors.bg)
         .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// 위시리스트를 분류별로 묶어 보여준다 (docs/12 J).
+struct WishlistCollectionView: View {
+    let entries: [Entry]
+
+    @EnvironmentObject private var router: NavigationRouter
+
+    private var grouped: [(type: WishlistType?, entries: [Entry])] {
+        var result: [(WishlistType?, [Entry])] = []
+        for type in WishlistType.allCases {
+            let matching = entries.filter { $0.wishlistType == type }
+            if !matching.isEmpty {
+                result.append((type, matching))
+            }
+        }
+        let untyped = entries.filter { $0.wishlistType == nil }
+        if !untyped.isEmpty {
+            result.append((nil, untyped))
+        }
+        return result.map { (type: $0.0, entries: $0.1) }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
+                ForEach(Array(grouped.enumerated()), id: \.offset) { _, group in
+                    VStack(alignment: .leading, spacing: AppLayout.smallGap) {
+                        Label(
+                            group.type?.displayName ?? "분류 없음",
+                            systemImage: group.type?.iconName ?? "bookmark"
+                        )
+                        .font(AppTypography.headline)
+                        .foregroundStyle(AppColors.text)
+                        .padding(.horizontal, AppLayout.horizontalPadding)
+
+                        ForEach(group.entries) { entry in
+                            Button {
+                                router.push(.entryDetail(entryId: entry.id))
+                            } label: {
+                                EntryCardView(entry: entry)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, AppLayout.horizontalPadding)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, AppLayout.mediumGap)
+        }
+        .background(AppColors.bg)
+        .navigationTitle("위시리스트")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

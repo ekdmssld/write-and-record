@@ -36,6 +36,7 @@ struct EntryEditorView: View {
                 titleSection
                 dateRow
                 ratingWishRow
+                wishlistTypeRow
                 visibilityRow
                 bodySection
                 additionalSections
@@ -209,7 +210,42 @@ struct EntryEditorView: View {
                 .onChange(of: viewModel.entry.rating) { _, _ in viewModel.noteChanged() }
             Spacer()
             WishlistToggle(isWishlist: $viewModel.entry.isWishlist)
-                .onChange(of: viewModel.entry.isWishlist) { _, _ in viewModel.noteChanged() }
+                .onChange(of: viewModel.entry.isWishlist) { _, newValue in
+                    if !newValue {
+                        viewModel.entry.wishlistType = nil
+                    }
+                    viewModel.noteChanged()
+                }
+        }
+    }
+
+    /// 위시 분류 선택 (docs/12 J). 위시가 켜졌을 때만 노출.
+    @ViewBuilder
+    private var wishlistTypeRow: some View {
+        if viewModel.entry.isWishlist {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: AppLayout.smallGap) {
+                    ForEach(WishlistType.allCases) { type in
+                        let isSelected = viewModel.entry.wishlistType == type
+                        Button {
+                            viewModel.entry.wishlistType = isSelected ? nil : type
+                            viewModel.noteChanged()
+                        } label: {
+                            Label(type.displayName, systemImage: type.iconName)
+                                .font(AppTypography.caption)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(isSelected ? AppColors.primary.opacity(0.12) : AppColors.surfaceAlt)
+                                .foregroundStyle(isSelected ? AppColors.primary : AppColors.textMuted)
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().stroke(isSelected ? AppColors.primary : .clear, lineWidth: 1)
+                                )
+                        }
+                        .accessibilityLabel("위시 분류 \(type.displayName)\(isSelected ? ", 선택됨" : "")")
+                    }
+                }
+            }
         }
     }
 

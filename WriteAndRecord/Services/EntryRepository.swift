@@ -176,6 +176,11 @@ final class EntryRepository: ObservableObject {
         return entriesByDateDescending().filter { $0.date >= cutoff }
     }
 
+    /// 인용구/문장이 저장된 기록 (docs/12 E).
+    var quoteEntries: [Entry] {
+        entriesByDateDescending().filter { $0.quoteText != nil }
+    }
+
     /// 백업에서 복원: 기록 관련 데이터를 백업 내용으로 교체한다 (docs/13 P1).
     func restore(
         entries newEntries: [Entry],

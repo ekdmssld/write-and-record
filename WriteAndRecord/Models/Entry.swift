@@ -80,6 +80,16 @@ struct Entry: Codable, Identifiable, Equatable {
 
     var effectiveVisibility: EntryVisibility { visibility ?? .privateOnly }
 
+    /// 기록에 저장된 인용구/문장 (책 인용문, 좋았던 가사, 기억나는 대사 — docs/12 E).
+    var quoteText: String? {
+        for key in ["quote", "favoriteLyricShort", "memorableLine"] {
+            if let value = metadata[key]?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty {
+                return value
+            }
+        }
+        return nil
+    }
+
     static func new(userId: String, date: Date, categoryId: String) -> Entry {
         let now = Date()
         return Entry(
@@ -152,7 +162,8 @@ struct MetadataField: Identifiable {
                 MetadataField("watchedStatus", "시청 상태"),
                 MetadataField("watchedEpisode", "본 에피소드"),
                 MetadataField("director", "감독"),
-                MetadataField("cast", "출연")
+                MetadataField("cast", "출연"),
+                MetadataField("memorableLine", "기억나는 대사")
             ]
         case .book:
             return [

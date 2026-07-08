@@ -8,6 +8,7 @@ struct SettingsView: View {
 
     @State private var exportURL: URL?
     @State private var showSignOutDialog = false
+    @State private var showFeedbackForm = false
     @State private var toastMessage: String?
 
     var body: some View {
@@ -37,6 +38,9 @@ struct SettingsView: View {
                 if let exportURL {
                     ShareSheet(items: [exportURL])
                 }
+            }
+            .sheet(isPresented: $showFeedbackForm) {
+                FeedbackView()
             }
             .confirmationDialog("로그아웃할까요?", isPresented: $showSignOutDialog, titleVisibility: .visible) {
                 Button("기기에 데이터 남기고 로그아웃") {
@@ -112,7 +116,7 @@ struct SettingsView: View {
     private var feedbackSection: some View {
         Section("베타 테스트") {
             Button {
-                sendFeedback()
+                showFeedbackForm = true
             } label: {
                 Label("피드백 보내기", systemImage: "envelope")
             }
@@ -178,25 +182,6 @@ struct SettingsView: View {
             exportURL = url
         } else {
             toastMessage = "내보내기에 실패했어요."
-        }
-    }
-
-    /// 백엔드 없는 피드백: 진단 정보가 채워진 mailto (Functional Spec 14장).
-    private func sendFeedback() {
-        let device = UIDevice.current
-        let body = """
-        ---
-        App: Write & Record \(BuildConfiguration.appVersionString)
-        Mode: \(BuildConfiguration.current.rawValue)
-        iOS: \(device.systemVersion)
-        Device: \(device.model)
-        ---
-        피드백 종류 (버그/요청/헷갈림/기타):
-        내용:
-        """
-        let encoded = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if let url = URL(string: "mailto:?subject=Write%20%26%20Record%20Feedback&body=\(encoded)") {
-            UIApplication.shared.open(url)
         }
     }
 

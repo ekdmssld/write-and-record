@@ -8,6 +8,20 @@ struct SearchView: View {
     @EnvironmentObject private var router: NavigationRouter
 
     @State private var filter = EntryRepository.SearchFilter()
+    @State private var showDateRangeSheet = false
+
+    private var dateRangeChipTitle: String {
+        switch (filter.dateFrom, filter.dateTo) {
+        case (nil, nil):
+            return "기간"
+        case (let from?, nil):
+            return "\(DateUtils.short(from)) ~"
+        case (nil, let to?):
+            return "~ \(DateUtils.short(to))"
+        case (let from?, let to?):
+            return "\(DateUtils.short(from)) ~ \(DateUtils.short(to))"
+        }
+    }
 
     private var results: [Entry] {
         entryRepository.search(filter, categories: categoryRepository.categories)
@@ -23,6 +37,9 @@ struct SearchView: View {
         .background(AppColors.bg)
         .navigationTitle("검색")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showDateRangeSheet) {
+            DateRangeSheet(dateFrom: $filter.dateFrom, dateTo: $filter.dateTo)
+        }
     }
 
     private var searchField: some View {
@@ -73,6 +90,26 @@ struct SearchView: View {
                         title: filter.minRating.map { "★ \($0)+" } ?? "별점",
                         isOn: filter.minRating != nil
                     )
+                }
+
+                Button { showDateRangeSheet = true } label: {
+                    chipLabel(title: dateRangeChipTitle, isOn: filter.dateFrom != nil || filter.dateTo != nil)
+                }
+
+                Menu {
+                    ForEach(EntryRepository.SearchSort.allCases) { sort in
+                        Button {
+                            filter.sort = sort
+                        } label: {
+                            if filter.sort == sort {
+                                Label(sort.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(sort.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    chipLabel(title: filter.sort.displayName, isOn: filter.sort != .dateDesc)
                 }
 
                 Button { filter.wishlistOnly.toggle() } label: {
@@ -126,5 +163,72 @@ struct SearchView: View {
                 .padding(.vertical, AppLayout.mediumGap)
             }
         }
+    }
+}
+
+/// 검색 기간(날짜 범위) 선택 시트.
+struct DateRangeSheet: View {
+    @Binding var dateFrom: Date?
+    @Binding var dateTo: Date?
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
+                Toggle("시작 날짜", isOn: Binding(
+                    get: { dateFrom != nil },
+                    set: { dateFrom = $0 ? (dateFrom ?? Calendar.current.date(byAdding: .month, value: -1, to: Date())!) : nil }
+                ))
+                .font(AppTypography.body)
+                if dateFrom != nil {
+                    DatePicker("시작", selection: Binding(
+                        get: { dateFrom ?? Date() },
+                        set: { dateFrom = $0 }
+                    ), displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                }
+
+                Divider().overlay(AppColors.line)
+
+                Toggle("끝 날짜", isOn: Binding(
+                    get: { dateTo != nil },
+                    set: { dateTo = $0 ? (dateTo ?? Date()) : nil }
+                ))
+                .font(AppTypography.body)
+                if dateTo != nil {
+                    DatePicker("끝", selection: Binding(
+                        get: { dateTo ?? Date() },
+                        set: { dateTo = $0 }
+                    ), displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                }
+
+                if let from = dateFrom, let to = dateTo, from > to {
+                    Text("시작 날짜가 끝 날짜보다 늦어요. 두 날짜를 확인해 주세요.")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.danger)
+                }
+
+                Spacer()
+
+                SecondaryButton(title: "기간 지우기") {
+                    dateFrom = nil
+                    dateTo = nil
+                    dismiss()
+                }
+            }
+            .padding(AppLayout.horizontalPadding)
+            .background(AppColors.bg)
+            .navigationTitle("기간으로 찾기")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("완료") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.fraction(0.45)])
+        .presentationDragIndicator(.visible)
     }
 }

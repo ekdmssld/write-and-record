@@ -117,25 +117,6 @@ final class EntryRepository: ObservableObject {
 
     // MARK: - Search / Filter
 
-    /// 검색 정렬 (docs/05 11장).
-    enum SearchSort: String, CaseIterable, Identifiable {
-        case dateDesc
-        case dateAsc
-        case createdDesc
-        case ratingDesc
-
-        var id: String { rawValue }
-
-        var displayName: String {
-            switch self {
-            case .dateDesc: return "최신 날짜순"
-            case .dateAsc: return "오래된 날짜순"
-            case .createdDesc: return "최근 작성순"
-            case .ratingDesc: return "별점 높은순"
-            }
-        }
-    }
-
     struct SearchFilter {
         var text: String = ""
         var categoryId: String?
@@ -143,23 +124,17 @@ final class EntryRepository: ObservableObject {
         var wishlistOnly: Bool = false
         var hasPhotoOnly: Bool = false
         var hasPlaceOnly: Bool = false
-        /// 날짜 범위 (둘 다 그날 포함).
-        var dateFrom: Date?
-        var dateTo: Date?
-        var sort: SearchSort = .dateDesc
 
         var isEmpty: Bool {
             text.trimmingCharacters(in: .whitespaces).isEmpty
                 && categoryId == nil && minRating == nil
                 && !wishlistOnly && !hasPhotoOnly && !hasPlaceOnly
-                && dateFrom == nil && dateTo == nil
         }
     }
 
     func search(_ filter: SearchFilter, categories: [EntryCategory]) -> [Entry] {
         let query = filter.text.trimmingCharacters(in: .whitespaces).lowercased()
-        let calendar = Calendar.current
-        let matched = activeEntries.filter { entry in
+        return entriesByDateDescending().filter { entry in
             if let categoryId = filter.categoryId {
                 let matchesCategory = entry.categoryId == categoryId
                     || categories.first(where: { $0.id == entry.categoryId })?.parentId == categoryId
@@ -171,11 +146,6 @@ final class EntryRepository: ObservableObject {
             if filter.wishlistOnly && !entry.isWishlist { return false }
             if filter.hasPhotoOnly && entry.assetIds.isEmpty { return false }
             if filter.hasPlaceOnly && entry.place == nil { return false }
-            if let from = filter.dateFrom, entry.date < calendar.startOfDay(for: from) { return false }
-            if let to = filter.dateTo {
-                let endOfDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: to)) ?? to
-                if entry.date >= endOfDay { return false }
-            }
             if !query.isEmpty {
                 let categoryName = categories.first { $0.id == entry.categoryId }?.name ?? entry.archivedCategoryName ?? ""
                 let haystack = [
@@ -188,23 +158,6 @@ final class EntryRepository: ObservableObject {
                 if !haystack.contains(query) { return false }
             }
             return true
-        }
-
-        switch filter.sort {
-        case .dateDesc:
-            return matched.sorted { $0.date > $1.date }
-        case .dateAsc:
-            return matched.sorted { $0.date < $1.date }
-        case .createdDesc:
-            return matched.sorted { $0.createdAt > $1.createdAt }
-        case .ratingDesc:
-            // 별점 없는 기록은 뒤로, 같은 별점은 최신순
-            return matched.sorted {
-                let lhs = $0.rating ?? -1
-                let rhs = $1.rating ?? -1
-                if lhs != rhs { return lhs > rhs }
-                return $0.date > $1.date
-            }
         }
     }
 

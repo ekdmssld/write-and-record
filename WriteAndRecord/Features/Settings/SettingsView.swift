@@ -102,7 +102,7 @@ struct SettingsView: View {
             NavigationLink {
                 CategoryOrderView()
             } label: {
-                Label("카테고리 순서 변경", systemImage: "line.3.horizontal")
+                Label("카테고리 관리", systemImage: "line.3.horizontal")
             }
             Toggle("친구에게 기록 공유 허용", isOn: profileBinding(\.friendShareEnabled))
             Toggle("기록 알림", isOn: notificationBinding)

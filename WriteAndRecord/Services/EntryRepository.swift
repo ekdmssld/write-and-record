@@ -161,6 +161,68 @@ final class EntryRepository: ObservableObject {
         }
     }
 
+    // MARK: - Manual collections (docs/01 P2)
+
+    /// 사용자 컬렉션. Collection.entryIds를 단일 source of truth로 사용한다.
+    var manualCollections: [EntryCollection] {
+        collections.sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    func collection(id: String) -> EntryCollection? {
+        collections.first { $0.id == id }
+    }
+
+    @discardableResult
+    func createCollection(name: String, description: String?) -> EntryCollection {
+        let now = Date()
+        let newCollection = EntryCollection(
+            id: UUID().uuidString,
+            name: name.trimmingCharacters(in: .whitespaces),
+            description: description?.trimmingCharacters(in: .whitespaces),
+            coverAssetId: nil,
+            entryIds: [],
+            sortOrder: (collections.map { $0.sortOrder }.max() ?? -1) + 1,
+            createdAt: now,
+            updatedAt: now
+        )
+        collections.append(newCollection)
+        PersistenceStore.save(collections, to: collectionsFile)
+        return newCollection
+    }
+
+    func updateCollection(_ collection: EntryCollection) {
+        guard let index = collections.firstIndex(where: { $0.id == collection.id }) else { return }
+        var updated = collection
+        updated.updatedAt = Date()
+        collections[index] = updated
+        PersistenceStore.save(collections, to: collectionsFile)
+    }
+
+    func deleteCollection(_ collection: EntryCollection) {
+        collections.removeAll { $0.id == collection.id }
+        PersistenceStore.save(collections, to: collectionsFile)
+    }
+
+    func entries(in collection: EntryCollection) -> [Entry] {
+        collection.entryIds.compactMap { entryId in
+            activeEntries.first { $0.id == entryId }
+        }
+    }
+
+    func isEntry(_ entry: Entry, in collection: EntryCollection) -> Bool {
+        collection.entryIds.contains(entry.id)
+    }
+
+    func toggleEntry(_ entry: Entry, in collection: EntryCollection) {
+        var updated = collection
+        if let index = updated.entryIds.firstIndex(of: entry.id) {
+            updated.entryIds.remove(at: index)
+        } else {
+            updated.entryIds.append(entry.id)
+        }
+        updateCollection(updated)
+    }
+
     // MARK: - Smart collections
 
     var wishlistEntries: [Entry] {

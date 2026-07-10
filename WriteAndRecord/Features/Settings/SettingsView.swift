@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var exportURL: URL?
     @State private var showSignOutDialog = false
     @State private var showFeedbackForm = false
+    @State private var showProfileEdit = false
     @State private var showImportPicker = false
     @State private var pendingImport: ExportService.ExportBundle?
     @State private var toastMessage: String?
@@ -43,6 +44,9 @@ struct SettingsView: View {
                     ShareSheet(items: [exportURL])
                 }
             }
+            .sheet(isPresented: $showProfileEdit) {
+                ProfileEditView()
+            }
             .sheet(isPresented: $showFeedbackForm) {
                 FeedbackView()
             }
@@ -61,30 +65,43 @@ struct SettingsView: View {
 
     private var profileSection: some View {
         Section {
-            HStack(spacing: AppLayout.mediumGap) {
-                if let avatar = appState.loadAvatarImage(assetId: appState.profile?.avatarAssetId) {
-                    Image(uiImage: avatar)
-                        .resizable()
-                        .scaledToFill()
+            Button {
+                showProfileEdit = true
+            } label: {
+                HStack(spacing: AppLayout.mediumGap) {
+                    if let avatar = appState.loadAvatarImage(assetId: appState.profile?.avatarAssetId) {
+                        Image(uiImage: avatar)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 56, height: 56)
+                            .clipShape(Circle())
+                    } else {
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: ProfileTheme.theme(for: appState.profile?.themeId ?? "").primaryColorHex).opacity(0.2))
+                            Image(systemName: "person.fill")
+                                .foregroundStyle(AppColors.textMuted)
+                        }
                         .frame(width: 56, height: 56)
-                        .clipShape(Circle())
-                } else {
-                    ZStack {
-                        Circle()
-                            .fill(Color(hex: ProfileTheme.theme(for: appState.profile?.themeId ?? "").primaryColorHex).opacity(0.2))
-                        Image(systemName: "person.fill")
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(appState.profile?.nickname ?? "-")
+                            .font(AppTypography.headline)
+                            .foregroundStyle(AppColors.text)
+                        Text(appState.profile?.spaceName ?? "-")
+                            .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textMuted)
                     }
-                    .frame(width: 56, height: 56)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(appState.profile?.nickname ?? "-")
-                        .font(AppTypography.headline)
-                    Text(appState.profile?.spaceName ?? "-")
+                    Spacer()
+                    Text("수정")
                         .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.primary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13))
                         .foregroundStyle(AppColors.textMuted)
                 }
             }
+            .accessibilityLabel("프로필 수정, \(appState.profile?.nickname ?? "")")
         }
     }
 

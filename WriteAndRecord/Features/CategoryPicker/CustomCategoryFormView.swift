@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// 커스텀 카테고리 생성 폼: 이름, 아이콘, 색상, 부모 카테고리 optional.
+/// 커스텀 카테고리 생성/수정 폼: 이름, 아이콘, 색상, 부모 카테고리 optional.
 struct CustomCategoryFormView: View {
     var parentId: String?
+    /// 값이 있으면 수정 모드.
+    var editing: EntryCategory?
     var onCreated: ((EntryCategory) -> Void)?
 
     @EnvironmentObject private var categoryRepository: CategoryRepository
@@ -102,35 +104,62 @@ struct CustomCategoryFormView: View {
                 .padding(AppLayout.horizontalPadding)
             }
             .background(AppColors.bg)
-            .navigationTitle("커스텀 카테고리")
+            .navigationTitle(editing == nil ? "커스텀 카테고리" : "카테고리 수정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("취소") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("만들기") { create() }
+                    Button(editing == nil ? "만들기" : "저장") { save() }
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
             .onAppear {
-                selectedParentId = parentId
+                if let editing {
+                    name = editing.name
+                    selectedIcon = editing.icon
+                    selectedColorHex = editing.colorHex
+                    selectedParentId = editing.parentId
+                } else {
+                    selectedParentId = parentId
+                }
             }
         }
     }
 
-    private func create() {
-        do {
-            let newCategory = try categoryRepository.addCustomCategory(
-                name: name,
-                icon: selectedIcon,
-                colorHex: selectedColorHex,
-                parentId: selectedParentId
-            )
+    private func save() {
+        if let editing {
+            // 수정: 같은 그룹의 다른 카테고리와 이름 중복만 막는다.
+            let trimmed = name.trimmingCharacters(in: .whitespaces)
+            let hasDuplicate = categoryRepository.activeCategories.contains {
+                $0.id != editing.id && $0.parentId == selectedParentId && $0.name == trimmed
+            }
+            guard !hasDuplicate else {
+                errorMessage = "같은 그룹에 이미 같은 이름의 카테고리가 있어요."
+                return
+            }
+            var updated = editing
+            updated.name = trimmed
+            updated.icon = selectedIcon
+            updated.colorHex = selectedColorHex
+            updated.parentId = selectedParentId
+            categoryRepository.update(updated)
             dismiss()
-            onCreated?(newCategory)
-        } catch {
-            errorMessage = error.localizedDescription
+            onCreated?(updated)
+        } else {
+            do {
+                let newCategory = try categoryRepository.addCustomCategory(
+                    name: name,
+                    icon: selectedIcon,
+                    colorHex: selectedColorHex,
+                    parentId: selectedParentId
+                )
+                dismiss()
+                onCreated?(newCategory)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

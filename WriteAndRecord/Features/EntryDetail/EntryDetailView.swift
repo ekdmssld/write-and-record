@@ -8,6 +8,7 @@ struct EntryDetailView: View {
     @EnvironmentObject private var router: NavigationRouter
 
     @State private var showDeleteConfirm = false
+    @State private var showCollectionSheet = false
     @State private var toastMessage: String?
 
     private var entry: Entry? {
@@ -37,6 +38,11 @@ struct EntryDetailView: View {
                         } label: {
                             Label("수정", systemImage: "pencil")
                         }
+                        Button {
+                            showCollectionSheet = true
+                        } label: {
+                            Label("컬렉션에 담기", systemImage: "square.stack")
+                        }
                         Button(role: .destructive) {
                             showDeleteConfirm = true
                         } label: {
@@ -47,6 +53,11 @@ struct EntryDetailView: View {
                     }
                     .accessibilityLabel("기록 메뉴")
                 }
+            }
+        }
+        .sheet(isPresented: $showCollectionSheet) {
+            if let entry {
+                CollectionMembershipSheet(entry: entry)
             }
         }
         .confirmationDialog("이 기록을 삭제할까요?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {

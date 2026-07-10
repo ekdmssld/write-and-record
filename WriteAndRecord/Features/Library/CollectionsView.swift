@@ -7,9 +7,12 @@ struct CollectionsView: View {
     @EnvironmentObject private var categoryRepository: CategoryRepository
     @EnvironmentObject private var router: NavigationRouter
 
+    @State private var showCreateCollection = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
+                manualCollectionsSection
                 wishlistRow
                 smartCollectionRow(
                     icon: "star.fill",
@@ -48,6 +51,83 @@ struct CollectionsView: View {
                 }
             }
             .padding(.vertical, AppLayout.smallGap)
+        }
+    }
+
+    /// 사용자가 직접 만든 컬렉션 (docs/01 P2).
+    private var manualCollectionsSection: some View {
+        VStack(alignment: .leading, spacing: AppLayout.smallGap) {
+            HStack {
+                Text("내 컬렉션")
+                    .font(AppTypography.headline)
+                    .foregroundStyle(AppColors.text)
+                Spacer()
+                Button {
+                    showCreateCollection = true
+                } label: {
+                    Label("만들기", systemImage: "plus")
+                        .font(AppTypography.callout)
+                        .foregroundStyle(AppColors.primary)
+                }
+                .accessibilityLabel("새 컬렉션 만들기")
+            }
+            .padding(.horizontal, AppLayout.horizontalPadding)
+            .padding(.top, AppLayout.smallGap)
+
+            if entryRepository.manualCollections.isEmpty {
+                Text("'2026 맛집'처럼 기록을 직접 모아보세요.")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textMuted)
+                    .padding(.horizontal, AppLayout.horizontalPadding)
+            } else {
+                ForEach(entryRepository.manualCollections) { collection in
+                    NavigationLink {
+                        ManualCollectionDetailView(collectionId: collection.id)
+                    } label: {
+                        HStack(spacing: AppLayout.mediumGap) {
+                            Image(systemName: "square.stack")
+                                .foregroundStyle(AppColors.primary)
+                                .frame(width: 32)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(collection.name)
+                                    .font(AppTypography.headline)
+                                    .foregroundStyle(AppColors.text)
+                                if let description = collection.description, !description.isEmpty {
+                                    Text(description)
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(AppColors.textMuted)
+                                        .lineLimit(1)
+                                }
+                            }
+                            Spacer()
+                            Text("\(collection.entryIds.count)")
+                                .font(AppTypography.callout)
+                                .foregroundStyle(AppColors.textMuted)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13))
+                                .foregroundStyle(AppColors.textMuted)
+                        }
+                        .padding(AppLayout.mediumGap)
+                        .background(AppColors.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                                .stroke(AppColors.line, lineWidth: 1)
+                        )
+                    }
+                    .padding(.horizontal, AppLayout.horizontalPadding)
+                    .accessibilityLabel("\(collection.name) 컬렉션, 기록 \(collection.entryIds.count)개")
+                }
+            }
+
+            Text("모아보기")
+                .font(AppTypography.headline)
+                .foregroundStyle(AppColors.text)
+                .padding(.horizontal, AppLayout.horizontalPadding)
+                .padding(.top, AppLayout.smallGap)
+        }
+        .sheet(isPresented: $showCreateCollection) {
+            CollectionFormView()
         }
     }
 

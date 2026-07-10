@@ -140,6 +140,18 @@ final class CategoryRepository: ObservableObject {
         update(archived)
     }
 
+    /// 숨긴(archived) 카테고리 목록.
+    var archivedCategories: [EntryCategory] {
+        categories.filter { $0.isArchived }
+    }
+
+    /// 기본 카테고리는 삭제 대신 숨김/복원 (Functional Spec 7장).
+    func setArchived(_ category: EntryCategory, archived: Bool) {
+        var updated = category
+        updated.isArchived = archived
+        update(updated)
+    }
+
     func resetToDefaults() {
         categories = CategorySeed.defaultCategories()
         PersistenceStore.save(categories, to: categoriesFile)

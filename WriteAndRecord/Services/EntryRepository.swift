@@ -208,6 +208,21 @@ final class EntryRepository: ObservableObject {
         }
     }
 
+    /// 카테고리 삭제 시 그 카테고리로 쓴 기록에 이름을 남긴다 (Product Spec 5장).
+    func stampArchivedCategoryName(categoryId: String, name: String) {
+        var newEntries = entries
+        var changed = false
+        for index in newEntries.indices
+        where newEntries[index].categoryId == categoryId && newEntries[index].archivedCategoryName == nil {
+            newEntries[index].archivedCategoryName = name
+            changed = true
+        }
+        if changed {
+            PersistenceStore.save(newEntries, to: entriesFile)
+            entries = newEntries
+        }
+    }
+
     // MARK: - Manual collections (docs/01 P2)
 
     /// 사용자 컬렉션. Collection.entryIds를 단일 source of truth로 사용한다.

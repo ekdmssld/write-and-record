@@ -165,6 +165,18 @@ struct InviteShareSheet: View {
         return "\(message)\n\(invite.inviteUrl)"
     }
 
+    private var qrImage: UIImage? {
+        QRCodeGenerator.image(from: invite.inviteUrl)
+    }
+
+    private var shareItems: [Any] {
+        var items: [Any] = [inviteText]
+        if let qrImage {
+            items.append(qrImage)
+        }
+        return items
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppLayout.mediumGap) {
             Text("초대하기")
@@ -196,6 +208,27 @@ struct InviteShareSheet: View {
             .background(AppColors.surfaceAlt)
             .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
 
+            // QR 코드: 가까이 있는 친구에게는 화면을 보여주고 바로 스캔하게 한다 (docs/10 P2).
+            if let qrImage {
+                VStack(spacing: 6) {
+                    Image(uiImage: qrImage)
+                        .interpolation(.none)
+                        .resizable()
+                        .frame(width: 160, height: 160)
+                        .padding(AppLayout.smallGap)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                                .stroke(AppColors.line, lineWidth: 1)
+                        )
+                    Text("QR 코드를 스캔해도 초대 링크로 이동해요.")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textMuted)
+                }
+                .frame(maxWidth: .infinity)
+            }
+
             HStack(spacing: AppLayout.mediumGap) {
                 SecondaryButton(title: "링크 복사") {
                     UIPasteboard.general.string = inviteText
@@ -214,11 +247,11 @@ struct InviteShareSheet: View {
         }
         .padding(.horizontal, AppLayout.horizontalPadding)
         .background(AppColors.bg)
-        .presentationDetents([.fraction(0.42)])
+        .presentationDetents([.fraction(0.68)])
         .presentationDragIndicator(.visible)
         .toast(message: $toastMessage)
         .sheet(isPresented: $showSystemShare) {
-            ShareSheet(items: [inviteText])
+            ShareSheet(items: shareItems)
         }
     }
 }

@@ -47,6 +47,12 @@ struct SocialView: View {
             .background(AppColors.bg)
             .navigationTitle("소셜")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: SocialEntry.self) { entry in
+                SocialEntryDetailView(entry: entry)
+            }
+            .navigationDestination(for: UserPublicProfile.self) { user in
+                PublicProfileView(user: user)
+            }
         }
     }
 

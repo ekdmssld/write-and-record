@@ -61,18 +61,21 @@ struct SocialFriendsTabView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: AppLayout.mediumGap) {
                             ForEach(friends) { friend in
-                                VStack(spacing: 4) {
-                                    ZStack {
-                                        Circle().fill(AppColors.primary.opacity(0.12))
-                                        Image(systemName: "person.fill")
-                                            .foregroundStyle(AppColors.primary)
+                                NavigationLink(value: friend) {
+                                    VStack(spacing: 4) {
+                                        ZStack {
+                                            Circle().fill(AppColors.primary.opacity(0.12))
+                                            Image(systemName: "person.fill")
+                                                .foregroundStyle(AppColors.primary)
+                                        }
+                                        .frame(width: 48, height: 48)
+                                        Text(friend.nickname)
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(AppColors.text)
+                                            .lineLimit(1)
                                     }
-                                    .frame(width: 48, height: 48)
-                                    Text(friend.nickname)
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(AppColors.text)
-                                        .lineLimit(1)
                                 }
+                                .buttonStyle(.plain)
                                 .contextMenu {
                                     Button(role: .destructive) {
                                         socialRepository.removeFriend(userId: friend.userId)

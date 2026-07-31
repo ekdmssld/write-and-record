@@ -74,6 +74,7 @@
 - [x] 앱 안 정보 검색 (docs/12 A) — `feat/info-search`. 키가 필요 없는 iTunes Search API로 영화/책/음악. 한국 도서 커버리지가 부족하면 알라딘/카카오책 API로 교체 검토.
 - [x] 장소 지도 보기 (docs/12 I) — 직접 구현 완료 (codex/place-search-selection).
 - [ ] iPad layout 대응 (docs/12 M): 실기기/시뮬레이터 검증 없이 진행 시 회귀 위험이 있어 Xcode 확보 후 진행.
+- [x] QR 초대 코드 — 초대 시트에서 초대 URL을 CoreImage로 QR 이미지 생성해 보여주고 공유 (`feat/social-invite-qrcode`). 외부 SDK 없음.
 - [ ] 카카오톡 전용 초대 버튼: KakaoTalk SDK + 앱 키 필요. 현재는 시스템 공유 시트로 카카오톡 선택 가능. universal link 도메인도 함께 필요.
 - [ ] 초대 링크 실동작: universal link 도메인 + 초대 수락 화면 (현재 URL은 placeholder).
 

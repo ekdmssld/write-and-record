@@ -34,10 +34,12 @@ Feature flag:
 - `enableReportAndBlock`
 
 초기값:
-- Debug: on 가능.
-- PersonalRelease: off.
-- BetaRelease: limited on.
-- StoreRelease: privacy/review 준비 후 on.
+- Debug: on.
+- PersonalRelease: off (개인 전용 빌드라 소셜이 필요 없음).
+- BetaRelease: on (P0+P1 기능과 차단/신고, 공개범위 전환이 준비됨).
+- StoreRelease: on.
+
+주의: 서버가 없는 로컬 우선 앱이므로, 플래그가 on이어도 실제 다중 사용자 간 친구 검색/요청 전달/초대 링크 수락은 동작하지 않는다. 이 플래그는 UI·설정·기록 단위 공개범위·좋아요/댓글 레이어의 노출 여부만 결정하며, 실제 서버 연동은 별도 작업이다.
 
 Release gate:
 - 기록 단위 공개 범위가 구현되어야 한다.
@@ -225,14 +227,26 @@ Entry에 추가:
 
 ### SocialReaction
 
-초기 optional:
+구현됨 (§15 결정 변경):
 - id: String
 - entryId: String
 - userId: String
-- type: like/bookmark
+- type: like (bookmark는 아직 없음 — 위시리스트 기능과 개념이 겹쳐 이번 범위에서 제외)
 - createdAt: Date
 
-P0 Social에서는 reaction 없이도 가능.
+기록을 볼 수 있는 사람(친구/전체 공개 규칙과 동일한 경계)이면 누구나 좋아요를 남길 수 있다.
+`allowFriendReactions`/`allowPublicReactions` 같은 기록 단위 세부 on/off는 이번 범위에서 만들지 않았다 — 필요해지면 별도 작업.
+
+### SocialComment
+
+구현됨 (§15 결정 변경):
+- id: String
+- entryId: String
+- authorId: String
+- text: String (1~300자)
+- createdAt: Date
+- updatedAt: Date
+- deletedAt: Date? (소프트 삭제, 본인 댓글만 삭제 가능)
 
 ### Report
 
@@ -440,15 +454,16 @@ P0 Social:
 - 차단하면 서로 보이지 않음.
 - 신고 진입점 존재.
 
-P1 Social:
-- 친구 목록.
-- 받은/보낸 요청 화면.
-- public profile 편집.
-- 내 공개 기록 목록.
-- social notification.
+P1 Social (구현 완료):
+- 친구 목록 (전체보기 화면, 검색/삭제).
+- 받은/보낸 요청 화면 (추가 탭 내).
+- public profile 편집 (소셜 설정 화면: 공개 범위/친구 요청 수신/알림).
+- 내 공개 기록 목록 (내가 공유한 기록 화면).
+- social notification (친구 요청 도착 로컬 알림).
+- PublicProfileView (다른 사용자 공개 프로필 + 공개 기록 보기, docs/11 6장).
+- 좋아요 + 댓글 (원래 P2/보류였으나 이번 범위에 포함, §15 참고).
 
-P2 Social:
-- reaction.
+P2 Social (남은 항목, 이번 범위 밖):
 - 추천 사용자.
 - QR/초대 코드.
 - 연락처 기반 찾기.
@@ -456,15 +471,13 @@ P2 Social:
 
 ## 15. Open Decisions
 
-추후 결정:
-- 친구 관계를 mutual friend로만 둘지, follow 모델도 둘지.
-- public feed에 기록 중심과 사용자 중심 중 무엇을 우선할지.
-- reaction을 허용할지.
-- 댓글을 만들지. 초기에는 댓글 비추천.
-- 공개 컬렉션을 언제 열지.
+결정 완료 (갱신됨):
+- 친구 관계는 계속 mutual friend만 사용한다 (follow 모델 없음).
+- 전체는 사용자 발견 + public 기록 preview 중심을 유지한다.
+- **reaction(좋아요)과 댓글을 이번에 추가하기로 결정을 뒤집었다.** 기록을 볼 수 있으면(친구 공개/전체 공개 규칙과 동일 경계) 좋아요·댓글을 남길 수 있다. `SocialReaction`/`SocialComment` 참고.
+- `allowFriendReactions`/`allowPublicReactions`/`shareCaption`/`sharedAt`/`unsharedAt` 같은 기록 단위 세부 토글은 이번 범위에서 만들지 않았다 — 단순화를 위해 기존 visibility 규칙을 그대로 재사용.
 
-현재 추천:
-- 초기에는 mutual friend만 사용한다.
-- 댓글은 만들지 않는다.
-- reaction도 P1 이후로 미룬다.
-- 전체는 사용자 발견 + public 기록 preview 중심으로 시작한다.
+추후 결정 (남음):
+- 공개 컬렉션을 언제 열지.
+- 댓글에도 좋아요를 허용할지.
+- QR/초대 코드, 연락처 기반 찾기, 추천 사용자 도입 시점.

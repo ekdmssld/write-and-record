@@ -50,4 +50,16 @@ enum NotificationService {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: [dailyReminderId])
     }
+
+    /// 친구 요청 도착 알림 (docs/10 9장, docs/11 9장). 소셜 알림을 켠 경우에만 보낸다.
+    static func notifyFriendRequestReceived(nickname: String, enabled: Bool) {
+        guard enabled else { return }
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = "친구 요청이 도착했어요"
+        content.body = "\(nickname)님이 친구 요청을 보냈어요."
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        center.add(request)
+    }
 }

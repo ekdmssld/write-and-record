@@ -121,6 +121,13 @@ struct SettingsView: View {
             } label: {
                 Label("카테고리 관리", systemImage: "line.3.horizontal")
             }
+            if FeatureFlags.enableFriendFeatures {
+                NavigationLink {
+                    SocialSettingsView()
+                } label: {
+                    Label("소셜 설정", systemImage: "person.2.circle")
+                }
+            }
             Toggle("친구에게 기록 공유 허용", isOn: profileBinding(\.friendShareEnabled))
             Toggle("기록 알림", isOn: notificationBinding)
             if appState.profile?.notificationEnabled == true {

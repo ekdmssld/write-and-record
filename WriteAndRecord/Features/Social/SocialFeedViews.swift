@@ -73,39 +73,42 @@ struct PublicUserCard: View {
 
     var body: some View {
         let relation = socialRepository.relation(with: user.userId)
-        VStack(spacing: AppLayout.smallGap) {
-            ZStack {
-                Circle()
-                    .fill(AppColors.primary.opacity(0.12))
-                Image(systemName: "person.fill")
-                    .foregroundStyle(AppColors.primary)
-            }
-            .frame(width: 44, height: 44)
+        NavigationLink(value: user) {
+            VStack(spacing: AppLayout.smallGap) {
+                ZStack {
+                    Circle()
+                        .fill(AppColors.primary.opacity(0.12))
+                    Image(systemName: "person.fill")
+                        .foregroundStyle(AppColors.primary)
+                }
+                .frame(width: 44, height: 44)
 
-            VStack(spacing: 2) {
-                Text(user.nickname)
-                    .font(AppTypography.headline)
-                    .foregroundStyle(AppColors.text)
-                    .lineLimit(1)
-                Text(user.spaceName)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textMuted)
-                    .lineLimit(1)
-                Text("공개 기록 \(user.recordCountPublic)개")
-                    .font(.system(size: 10))
-                    .foregroundStyle(AppColors.textMuted)
-            }
+                VStack(spacing: 2) {
+                    Text(user.nickname)
+                        .font(AppTypography.headline)
+                        .foregroundStyle(AppColors.text)
+                        .lineLimit(1)
+                    Text(user.spaceName)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textMuted)
+                        .lineLimit(1)
+                    Text("공개 기록 \(user.recordCountPublic)개")
+                        .font(.system(size: 10))
+                        .foregroundStyle(AppColors.textMuted)
+                }
 
-            friendActionButton(relation)
+                friendActionButton(relation)
+            }
+            .frame(width: 132)
+            .padding(AppLayout.mediumGap)
+            .background(AppColors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppLayout.cardRadius)
+                    .stroke(AppColors.line, lineWidth: 1)
+            )
         }
-        .frame(width: 132)
-        .padding(AppLayout.mediumGap)
-        .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cardRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppLayout.cardRadius)
-                .stroke(AppColors.line, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
         .contextMenu {
             moderationMenu
         }
@@ -168,6 +171,13 @@ struct SocialEntryCard: View {
     }
 
     var body: some View {
+        NavigationLink(value: entry) {
+            cardContent
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: AppLayout.smallGap) {
             // author row
             HStack(spacing: AppLayout.smallGap) {
@@ -236,6 +246,8 @@ struct SocialEntryCard: View {
                     .foregroundStyle(AppColors.textMuted)
                     .lineLimit(2)
             }
+
+            reactionRow
         }
         .padding(AppLayout.mediumGap)
         .background(AppColors.surface)
@@ -244,6 +256,24 @@ struct SocialEntryCard: View {
             RoundedRectangle(cornerRadius: AppLayout.cardRadius)
                 .stroke(AppColors.line, lineWidth: 1)
         )
+    }
+
+    private var reactionRow: some View {
+        let liked = socialRepository.hasLiked(entryId: entry.id)
+        return HStack(spacing: AppLayout.largeGap) {
+            Button {
+                socialRepository.toggleLike(entryId: entry.id)
+            } label: {
+                Label("\(socialRepository.likeCount(for: entry.id))", systemImage: liked ? "heart.fill" : "heart")
+                    .foregroundStyle(liked ? AppColors.danger : AppColors.textMuted)
+            }
+            .buttonStyle(.plain)
+
+            Label("\(socialRepository.commentCount(for: entry.id))", systemImage: "bubble.right")
+                .foregroundStyle(AppColors.textMuted)
+        }
+        .font(.system(size: 13))
+        .padding(.top, 2)
     }
 
     @ViewBuilder

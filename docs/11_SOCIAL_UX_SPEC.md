@@ -314,11 +314,19 @@ Actions:
 - 친구 추가.
 - 신고.
 - 차단.
-- reaction optional later.
+- 좋아요(♡/♥ + 개수) — 구현됨.
+- 댓글(목록 + 입력창, 1~300자) — 구현됨. 본인 댓글만 삭제 가능, 타인 댓글은 신고 가능.
 
 금지:
 - private editor action 노출.
 - 내 기록이 아닌데 edit/delete 표시.
+- 다른 사용자 기록의 전체 body 노출 — 상세에서도 bodyPreview까지만 보여준다. 내 기록일 때만 전체 본문/사진을 보여준다.
+
+댓글 empty state:
+
+```text
+아직 댓글이 없어요. 첫 댓글을 남겨보세요.
+```
 
 ## 8. Share Visibility UX
 
@@ -473,18 +481,20 @@ UX P0:
 - 공개 범위가 사용자에게 명확히 설명된다.
 - 신고/차단 진입점이 있다.
 
-UX P1:
-- 받은 요청 badge.
-- 친구 목록 preview.
+UX P1 (구현 완료):
+- 받은 요청 badge (친구들 탭 배너 + 추가 탭 목록).
+- 친구 목록 preview + 전체보기 화면(검색/삭제).
 - PublicProfileView.
-- SocialEntryDetail.
+- SocialEntryDetail (좋아요/댓글 포함).
 - 공개 범위 변경 bottom sheet.
+- 내가 공유한 기록 화면, 차단한 사용자 관리 화면, 소셜 설정(프로필 공개범위/알림).
 
-UX P2:
+UX P2 (남은 항목):
 - 추천 사용자.
 - QR invite.
-- reaction.
 - 공개 컬렉션.
+
+reaction/댓글은 원래 P2였으나 이번에 P1과 함께 구현했다 (docs/10 15장 결정 변경).
 
 ## 15. Final UX Rule
 

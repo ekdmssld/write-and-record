@@ -18,9 +18,19 @@ struct UserProfile: Codable, Identifiable, Equatable {
     var notificationEnabled: Bool
     /// 매일 기록 리마인더 시각. 기존 데이터 호환을 위해 optional (nil = 21:00 기본값).
     var reminderTime: Date?
+    /// 내 프로필 공개 범위. 기존 데이터 호환을 위해 optional (nil = private, docs/10 4장).
+    var profileVisibility: ProfileVisibility?
+    /// 친구 요청 수신 허용. 기존 데이터 호환을 위해 optional (nil = true).
+    var allowFriendRequests: Bool?
+    /// 소셜 알림(친구 요청 등). 기존 데이터 호환을 위해 optional (nil = false).
+    var socialNotificationEnabled: Bool?
     var onboardingCompletedAt: Date?
     var createdAt: Date
     var updatedAt: Date
+
+    var effectiveProfileVisibility: ProfileVisibility { profileVisibility ?? .privateOnly }
+    var effectiveAllowFriendRequests: Bool { allowFriendRequests ?? true }
+    var effectiveSocialNotificationEnabled: Bool { socialNotificationEnabled ?? false }
 
     static func new(id: String = UUID().uuidString, provider: AuthProvider) -> UserProfile {
         let now = Date()
@@ -35,6 +45,9 @@ struct UserProfile: Codable, Identifiable, Equatable {
             friendShareEnabled: false,
             notificationEnabled: false,
             reminderTime: nil,
+            profileVisibility: nil,
+            allowFriendRequests: nil,
+            socialNotificationEnabled: nil,
             onboardingCompletedAt: nil,
             createdAt: now,
             updatedAt: now

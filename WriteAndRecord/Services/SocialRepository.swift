@@ -8,21 +8,55 @@ import Combine
 final class SocialRepository: ObservableObject {
     @Published private(set) var publicProfiles: [UserPublicProfile] = []
     @Published private(set) var mockPublicEntries: [SocialEntry] = []
-    @Published private(set) var friendships: [Friendship] = []
+    @Published private(set) var friendships: [Friendship] = [] {
+        didSet {
+            // 디스크에서 처음 불러올 때는 기존 pending 요청을 "새 요청"으로 오인해
+            // 앱을 열 때마다 알림이 반복되지 않도록, 초기 로드가 끝난 뒤부터만 비교한다.
+            guard hasFinishedInitialLoad else { return }
+            notifyNewIncomingRequests(previous: oldValue)
+        }
+    }
     @Published private(set) var blockedUserIds: Set<String> = []
+    @Published private(set) var reactions: [SocialReaction] = []
+    @Published private(set) var comments: [SocialComment] = []
 
     let myUserId: String
+
+    /// 받은 친구 요청이 새로 생겼을 때 알림을 보내기 위한 훅 (요청자 닉네임을 전달).
+    /// 서버가 없어 지금은 mock 시드가 새 pending 요청을 추가할 때만 발생하지만,
+    /// 서버 동기화가 들어와도 같은 지점을 그대로 재사용할 수 있도록 클로저로 분리해둔다.
+    /// init 시점(시드가 실행되기 전)에 주입해야 시드된 요청도 알림이 울린다.
+    var onIncomingRequest: ((String) -> Void)?
+
+    private var hasFinishedInitialLoad = false
 
     private let friendshipsFile = "socialFriendships"
     private let blocksFile = "socialBlocks"
     private let reportsFile = "socialReports"
+    private let reactionsFile = "socialReactions"
+    private let commentsFile = "socialComments"
 
-    init(myUserId: String = "local-user") {
+    init(myUserId: String = "local-user", onIncomingRequest: ((String) -> Void)? = nil) {
         self.myUserId = myUserId
+        self.onIncomingRequest = onIncomingRequest
         friendships = PersistenceStore.load([Friendship].self, from: friendshipsFile) ?? []
+        hasFinishedInitialLoad = true
         blockedUserIds = Set(PersistenceStore.load([String].self, from: blocksFile) ?? [])
+        reactions = PersistenceStore.load([SocialReaction].self, from: reactionsFile) ?? []
+        comments = PersistenceStore.load([SocialComment].self, from: commentsFile) ?? []
         if FeatureFlags.enableSampleData {
             seedMockSocialData()
+        }
+    }
+
+    private func notifyNewIncomingRequests(previous: [Friendship]) {
+        let previousIds = Set(previous.map { $0.id })
+        let newIncoming = friendships.filter {
+            $0.status == .pending && $0.addresseeId == myUserId && !previousIds.contains($0.id)
+        }
+        for request in newIncoming {
+            let nickname = profile(userId: request.requesterId)?.nickname ?? "사용자"
+            onIncomingRequest?(nickname)
         }
     }
 
@@ -43,6 +77,11 @@ final class SocialRepository: ObservableObject {
         return mockPublicEntries
             .filter { friendIds.contains($0.authorId) && !blockedUserIds.contains($0.authorId) }
             .sorted { $0.date > $1.date }
+    }
+
+    /// 특정 사용자의 공개 기록 (PublicProfileView, docs/11 6장).
+    func entries(byAuthor userId: String) -> [SocialEntry] {
+        mockPublicEntries.filter { $0.authorId == userId }.sorted { $0.date > $1.date }
     }
 
     func visiblePublicProfiles() -> [UserPublicProfile] {
@@ -231,6 +270,71 @@ final class SocialRepository: ObservableObject {
         PersistenceStore.save(reports, to: reportsFile)
     }
 
+    // MARK: - Reactions
+
+    func hasLiked(entryId: String) -> Bool {
+        reactions.contains { $0.entryId == entryId && $0.userId == myUserId }
+    }
+
+    func likeCount(for entryId: String) -> Int {
+        reactions.filter { $0.entryId == entryId }.count
+    }
+
+    func toggleLike(entryId: String) {
+        if let index = reactions.firstIndex(where: { $0.entryId == entryId && $0.userId == myUserId }) {
+            reactions.remove(at: index)
+        } else {
+            reactions.append(SocialReaction(
+                id: UUID().uuidString,
+                entryId: entryId,
+                userId: myUserId,
+                type: .like,
+                createdAt: Date()
+            ))
+        }
+        PersistenceStore.save(reactions, to: reactionsFile)
+    }
+
+    // MARK: - Comments
+
+    func comments(for entryId: String) -> [SocialComment] {
+        comments
+            .filter { $0.entryId == entryId && !$0.isDeleted }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    func commentCount(for entryId: String) -> Int {
+        comments.filter { $0.entryId == entryId && !$0.isDeleted }.count
+    }
+
+    /// 댓글 추가. 앞뒤 공백을 지우고 1~300자만 허용한다.
+    @discardableResult
+    func addComment(entryId: String, text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.count <= 300 else { return false }
+        let now = Date()
+        comments.append(SocialComment(
+            id: UUID().uuidString,
+            entryId: entryId,
+            authorId: myUserId,
+            text: trimmed,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: nil
+        ))
+        PersistenceStore.save(comments, to: commentsFile)
+        return true
+    }
+
+    /// 본인 댓글만 소프트 삭제할 수 있다.
+    func deleteComment(_ comment: SocialComment) {
+        guard comment.authorId == myUserId,
+              let index = comments.firstIndex(where: { $0.id == comment.id }) else { return }
+        comments[index].deletedAt = Date()
+        comments[index].updatedAt = Date()
+        PersistenceStore.save(comments, to: commentsFile)
+    }
+
     // MARK: - Mock seed (Debug)
 
     private func seedMockSocialData() {
@@ -277,6 +381,19 @@ final class SocialRepository: ObservableObject {
                 visibility: .publicAll,
                 coverAsset: nil
             )
+        }
+
+        // 받은 친구 요청 흐름을 시연할 수 있도록 지호가 보낸 요청 1건을 시드한다.
+        if friendships.isEmpty {
+            friendships = [Friendship(
+                id: UUID().uuidString,
+                requesterId: "mock-friend-2",
+                addresseeId: myUserId,
+                status: .pending,
+                requestedAt: now,
+                respondedAt: nil,
+                updatedAt: now
+            )]
         }
     }
 }
